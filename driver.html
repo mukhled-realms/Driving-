@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CyberDelivery | تطبيق المندوب</title>
+<meta name="theme-color" content="#05050a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect fill='%2305050a' width='512' height='512' rx='64'/%3E%3Ctext x='256' y='300' font-size='180' text-anchor='middle' fill='%2300ff66' font-family='Arial' font-weight='bold'%3E🚀%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Bengali:wght@400;700&family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { font-family: 'Tajawal', sans-serif; box-sizing: border-box; }
+[lang="ar"], [lang="en"] { font-family: 'Tajawal', sans-serif; }
+[lang="ur"] { font-family: 'Noto Nastaliq Urdu', serif; line-height: 2.2; }
+[lang="bn"] { font-family: 'Noto Sans Bengali', sans-serif; }
+[lang="hi"] { font-family: 'Noto Sans Devanagari', sans-serif; }
+body { background: linear-gradient(135deg, #05050a 0%, #0b0f19 50%, #1a0f2e 100%); min-height: 100vh; color: #e5e7eb; }
+.neon-cyan { color: #00f0ff; text-shadow: 0 0 10px rgba(0,240,255,0.5); }
+.neon-green { color: #00ff66; text-shadow: 0 0 10px rgba(0,255,102,0.5); }
+.neon-pink { color: #ff0055; text-shadow: 0 0 10px rgba(255,0,85,0.5); }
+.glow-cyan { box-shadow: 0 0 20px rgba(0,240,255,0.25); }
+.glow-green { box-shadow: 0 0 20px rgba(0,255,102,0.25); }
+.glow-pink { box-shadow: 0 0 20px rgba(255,0,85,0.25); }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.slide-up { animation: slideUp 0.4s ease-out; }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(0,255,102,0.7); } 70% { box-shadow: 0 0 0 15px rgba(0,255,102,0); } 100% { box-shadow: 0 0 0 0 rgba(0,255,102,0); } }
+.pulse-success { animation: pulse-ring 2s infinite; }
+.card { background: rgba(11,15,25,0.85); backdrop-filter: blur(10px); border: 1px solid rgba(0,240,255,0.2); border-radius: 20px; }
+.btn-primary { background: linear-gradient(135deg, #00f0ff 0%, #00ff66 100%); color: #05050a; font-weight: 900; transition: all 0.2s; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,240,255,0.4); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.input-field { background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.1); color: #fff; border-radius: 14px; padding: 14px; width: 100%; transition: all 0.2s; }
+.input-field:focus { border-color: #00f0ff; outline: none; box-shadow: 0 0 0 3px rgba(0,240,255,0.2); }
+.lang-btn { padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s; cursor: pointer; }
+.lang-btn.active { background: rgba(0,240,255,0.2); border-color: #00f0ff; color: #00f0ff; }
+.lang-btn:hover { background: rgba(255,255,255,0.1); }
+.tab-btn { padding: 10px; border-radius: 12px; font-size: 13px; font-weight: 700; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s; cursor: pointer; flex: 1; text-align: center; }
+.tab-btn.active { background: rgba(0,255,102,0.2); border-color: #00ff66; color: #00ff66; }
+#map { height: 250px; border-radius: 16px; z-index: 1; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 14px 24px; border-radius: 14px; font-weight: 700; z-index: 1000; animation: slideUp 0.3s ease-out; }
+.toast-success { background: #00ff66; color: #05050a; }
+.toast-error { background: #ff0055; color: #fff; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0b0f19; }
+::-webkit-scrollbar-thumb { background: #00f0ff; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+  <div class="card p-8 w-full max-w-sm glow-cyan text-center">
+    <div class="text-6xl mb-4">🚗</div>
+    <h1 class="text-2xl font-black neon-cyan mb-2" data-i18n="driverLogin">دخول المندوب</h1>
+    <p class="text-xs text-gray-400 mb-6" data-i18n="enterPhone">أدخل رقم الجوال للدخول</p>
+    <input type="tel" id="loginPhone" class="input-field text-center text-xl mb-4" placeholder="+9665xxxxxxxx">
+    <button onclick="driverLogin()" class="btn-primary w-full py-3 rounded-xl text-lg" data-i18n="login">دخول</button>
+    <div class="mt-4 flex justify-center gap-1">
+      <button onclick="setLang('ar')" class="lang-btn" data-lang="ar">🇸🇦</button>
+      <button onclick="setLang('en')" class="lang-btn" data-lang="en">🇬🇧</button>
+      <button onclick="setLang('ur')" class="lang-btn" data-lang="ur">🇵🇰</button>
+      <button onclick="setLang('bn')" class="lang-btn" data-lang="bn">🇧🇩</button>
+      <button onclick="setLang('hi')" class="lang-btn" data-lang="hi">🇮🇳</button>
+    </div>
+  </div>
+</div>
+
+<div id="app" class="hidden max-w-md mx-auto p-4 space-y-4 min-h-screen flex flex-col">
+
+  <header class="card p-4 glow-cyan">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <h1 class="text-xl font-black neon-cyan" data-i18n="appName">🚀 سايبر توصيل</h1>
+        <p class="text-xs text-gray-400" id="driverNameDisplay">---</p>
+      </div>
+      <button onclick="logout()" class="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500 text-red-400 text-xs font-bold">🚪 <span data-i18n="logout">خروج</span></button>
+    </div>
+    <div class="flex gap-1">
+      <button onclick="setLang('ar')" class="lang-btn" data-lang="ar">🇸🇦 عربي</button>
+      <button onclick="setLang('en')" class="lang-btn" data-lang="en">🇬🇧 EN</button>
+      <button onclick="setLang('ur')" class="lang-btn" data-lang="ur">🇵🇰 اردو</button>
+      <button onclick="setLang('bn')" class="lang-btn" data-lang="bn">🇧🇩 বাংলা</button>
+      <button onclick="setLang('hi')" class="lang-btn" data-lang="hi">🇮🇳 हिंदी</button>
+    </div>
+  </header>
+
+  <div class="flex gap-2">
+    <button onclick="switchTab('orders')" id="tab-btn-orders" class="tab-btn active" data-i18n="tabOrders">📦 الطلبات</button>
+    <button onclick="switchTab('map')" id="tab-btn-map" class="tab-btn" data-i18n="tabMap">🗺️ الخريطة</button>
+    <button onclick="switchTab('stats')" id="tab-btn-stats" class="tab-btn" data-i18n="tabStats">📊 إحصائياتي</button>
+  </div>
+
+  <div id="tab-orders" class="tab-content space-y-4 flex-grow">
+    <div class="grid grid-cols-3 gap-2">
+      <div class="card p-3 text-center border border-green-500/20">
+        <div class="text-xl font-black neon-green" id="todayEarnings">0</div>
+        <div class="text-[10px] text-gray-400" data-i18n="todayEarnings">دخل اليوم</div>
+      </div>
+      <div class="card p-3 text-center border border-cyan-500/20">
+        <div class="text-xl font-black neon-cyan" id="todayOrders">0</div>
+        <div class="text-[10px] text-gray-400" data-i18n="todayDeliveries">توصيلات</div>
+      </div>
+      <div class="card p-3 text-center border border-yellow-500/20">
+        <div class="text-xl font-black text-yellow-400" id="driverRating">5.0</div>
+        <div class="text-[10px] text-gray-400">⭐ <span data-i18n="rating">التقييم</span></div>
+      </div>
+    </div>
+
+    <div id="activeOrderCard" class="hidden"></div>
+
+    <div id="ordersList" class="space-y-3">
+      <div class="text-center text-gray-500 py-10">
+        <div class="text-4xl mb-2">🔍</div>
+        <p class="text-sm" data-i18n="searchingOrders">جاري البحث عن طلبات...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-map" class="tab-content hidden space-y-4 flex-grow">
+    <div class="card p-3 glow-cyan">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-bold neon-cyan" data-i18n="liveMap">📍 الخريطة المباشرة</span>
+        <button onclick="showHeatmap()" class="text-xs bg-pink-500/20 border border-pink-500 text-pink-400 px-3 py-1 rounded-lg" data-i18n="hotspots">🔥 المناطق المربحة</button>
+      </div>
+      <div id="map"></div>
+      <div class="mt-2 text-center">
+        <span id="mapInfo" class="text-xs text-gray-500" data-i18n="waitingOrder">في انتظار طلب...</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-stats" class="tab-content hidden space-y-4 flex-grow">
+    <div class="card p-5 border border-purple-500/30">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="text-lg font-black text-purple-300" id="levelName">🌱 <span data-i18n="beginner">مبتدئ</span></h3>
+          <p class="text-xs text-gray-400"><span data-i18n="level">المستوى</span> <span id="levelNum">1</span></p>
+        </div>
+        <div class="text-4xl" id="levelIcon">🌱</div>
+      </div>
+      <div class="bg-black/40 rounded-full h-3 overflow-hidden">
+        <div id="levelProgress" class="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+      </div>
+      <p class="text-xs text-gray-400 mt-2"><span id="nextLevelOrders">10</span> <span data-i18n="ordersToNextLevel">توصيلات للمستوى التالي</span></p>
+    </div>
+
+    <div class="card p-5 border border-yellow-500/20">
+      <h3 class="text-sm font-bold text-yellow-400 mb-3">🏆 <span data-i18n="achievements">الإنجازات</span></h3>
+      <div id="achievementsList" class="grid grid-cols-4 gap-3 text-center"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="cashModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="card p-6 w-full max-w-sm slide-up border-2 border-yellow-500/50 glow-pink">
+    <h3 class="text-xl font-black text-yellow-400 text-center mb-4">💰 <span data-i18n="cashCollection">تحصيل المبلغ</span></h3>
+    <div class="bg-black/50 rounded-2xl p-4 mb-4 text-center">
+      <div class="text-xs text-gray-400 mb-1" data-i18n="requiredAmount">المبلغ المطلوب</div>
+      <div id="modalAmount" class="text-3xl font-black neon-green">0 <span data-i18n="currency">ر.س</span></div>
+    </div>
+    <input type="number" id="cashInput" class="input-field text-center text-2xl font-black neon-green mb-4" placeholder="0">
+    <div id="cashWarning" class="hidden bg-yellow-500/20 border border-yellow-500 rounded-xl p-3 mb-4 text-center">
+      <p class="text-yellow-400 text-sm font-bold">⚠️ <span data-i18n="amountLess">المبلغ أقل من المطلوب</span></p>
+    </div>
+    <div class="space-y-2">
+      <button onclick="confirmCash()" class="btn-primary w-full py-3 rounded-xl" data-i18n="confirm">✅ تأكيد التحصيل</button>
+      <button onclick="sendNoteToBoss()" class="w-full py-3 rounded-xl bg-yellow-600/20 border border-yellow-600 text-yellow-400 font-bold" data-i18n="sendNote">📨 إرسال ملاحظة للمطعم</button>
+      <button onclick="closeCashModal()" class="w-full py-3 rounded-xl bg-gray-700 text-white font-bold" data-i18n="cancel">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<button onclick="triggerSOS()" class="fixed bottom-6 right-6 z-40 w-14 h-14 bg-red-600 rounded-full flex items-center justify-center text-2xl shadow-lg shadow-red-600/50 active:scale-90 transition border-2 border-red-400">🆘</button>
+
+<div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] space-y-2"></div>
+
+<script>
+const SUPABASE_URL = 'https://hhljyqelqnsltmasxgqv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Xeo54iI9kxJ0n00f71A_yA_QNvmRC3H';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const I18N = {
+  ar: { dir: 'rtl', driverLogin: 'دخول المندوب', enterPhone: 'أدخل رقم الجوال للدخول', login: 'دخول', logout: 'خروج', appName: '🚀 سايبر توصيل', tabOrders: '📦 الطلبات', tabMap: '🗺️ الخريطة', tabStats: '📊 إحصائياتي', todayEarnings: 'دخل اليوم', todayDeliveries: 'توصيلات', rating: 'التقييم', searchingOrders: 'جاري البحث عن طلبات...', noOrders: 'لا توجد طلبات حالياً', ordersAuto: 'الطلبات الجديدة ستظهر تلقائياً', liveMap: '📍 الخريطة المباشرة', hotspots: '🔥 المناطق المربحة', waitingOrder: 'في انتظار طلب...', beginner: 'مبتدئ', level: 'المستوى', ordersToNextLevel: 'توصيلات للمستوى التالي', achievements: 'الإنجازات', cashCollection: 'تحصيل المبلغ', requiredAmount: 'المبلغ المطلوب', currency: 'ر.س', amountLess: 'المبلغ أقل من المطلوب', confirm: '✅ تأكيد التحصيل', sendNote: '📨 إرسال ملاحظة للمطعم', cancel: 'إلغاء', newOrder: '🆕 طلب جديد', accept: '✅ قبول', total: 'الإجمالي', activeDelivery: '🚗 طلب نشط', inProgress: 'قيد التنفيذ', openNav: '🧭 فتح الملاحة', atStore: '🏪 وصلت المحل', pickedUp: '📦 استلمت الطلب', deliver: '💰 تم التوصيل - تحصيل', now: 'الآن', minAgo: 'د', accepted: '✅ قبلت الطلب', cashSuccess: '💰 تم تحصيل {n} ر.س بنجاح', newOrderAlert: '🔔 طلب جديد!', sosConfirm: '🚨 هل تريد تفعيل وضع الطوارئ؟', sosSent: '🚨 تم إرسال تنبيه الطوارئ!', noteSent: '📨 تم إرسال الملاحظة', fillAmount: '⚠️ أدخل المبلغ', error: '❌ خطأ', copied: '📋 تم النسخ', orderStatus: { pending: 'معلق', accepted: 'مقبول', at_store: 'في المحل', picked_up: 'تم الاستلام', in_transit: 'في الطريق', delivered: 'تم التوصيل', cancelled: 'ملغي' } },
+  en: { dir: 'ltr', driverLogin: 'Driver Login', enterPhone: 'Enter phone number to login', login: 'Login', logout: 'Logout', appName: '🚀 CyberDelivery', tabOrders: '📦 Orders', tabMap: '🗺️ Map', tabStats: '📊 Stats', todayEarnings: "Today's Earnings", todayDeliveries: 'Deliveries', rating: 'Rating', searchingOrders: 'Searching for orders...', noOrders: 'No orders right now', ordersAuto: 'New orders will appear automatically', liveMap: '📍 Live Map', hotspots: '🔥 Hot Zones', waitingOrder: 'Waiting for an order...', beginner: 'Beginner', level: 'Level', ordersToNextLevel: 'orders to next level', achievements: 'Achievements', cashCollection: 'Cash Collection', requiredAmount: 'Required Amount', currency: 'SAR', amountLess: 'Amount is less than required', confirm: '✅ Confirm Collection', sendNote: '📨 Send Note to Restaurant', cancel: 'Cancel', newOrder: '🆕 NEW ORDER', accept: '✅ Accept', total: 'Total', activeDelivery: '🚗 Active Delivery', inProgress: 'In Progress', openNav: '🧭 Open Navigation', atStore: '🏪 Arrived at Store', pickedUp: '📦 Picked Up Order', deliver: '💰 Delivered - Collect', now: 'Now', minAgo: 'm', accepted: '✅ Order accepted', cashSuccess: '💰 Collected {n} SAR successfully', newOrderAlert: '🔔 New order!', sosConfirm: '🚨 Activate SOS mode?', sosSent: '🚨 SOS alert sent!', noteSent: '📨 Note sent to restaurant', fillAmount: '⚠️ Enter amount', error: '❌ Error', copied: '📋 Copied', orderStatus: { pending: 'Pending', accepted: 'Accepted', at_store: 'At Store', picked_up: 'Picked Up', in_transit: 'In Transit', delivered: 'Delivered', cancelled: 'Cancelled' } },
+  ur: { dir: 'rtl', driverLogin: 'ڈرائیور لاگ ان', enterPhone: 'لاگ ان کے لیے فون نمبر درج کریں', login: 'لاگ ان', logout: 'لاگ آؤٹ', appName: '🚀 سائبر ڈیلیوری', tabOrders: '📦 آرڈرز', tabMap: '🗺️ نقشہ', tabStats: '📊 اعداد و شمار', todayEarnings: 'آج کی کمائی', todayDeliveries: 'ڈیلیوریاں', rating: 'درجہ بندی', searchingOrders: 'آرڈرز تلاش کیے جا رہے ہیں...', noOrders: 'ابھی کوئی آرڈر نہیں', ordersAuto: 'نئے آرڈرز خود بخود ظاہر ہوں گے', liveMap: '📍 براہ راست نقشہ', hotspots: '🔥 منافع بخش علاقے', waitingOrder: 'آرڈر کا انتظار...', beginner: 'ابتدائی', level: 'سطح', ordersToNextLevel: 'اگلی سطح تک آرڈرز', achievements: 'کامیابیاں', cashCollection: 'نقد رقم وصولی', requiredAmount: 'درکار رقم', currency: 'ریال', amountLess: 'رقم مطلوبہ سے کم ہے', confirm: '✅ وصولی کی تصدیق', sendNote: '📨 ریسٹورنٹ کو نوٹ بھیجیں', cancel: 'منسوخ', newOrder: '🆕 نیا آرڈر', accept: '✅ قبول', total: 'کل', activeDelivery: '🚗 فعال ڈیلیوری', inProgress: 'جاری', openNav: '🧭 نیویگیشن کھولیں', atStore: '🏪 دکان پہنچ گیا', pickedUp: '📦 آرڈر اٹھایا', deliver: '💰 پہنچایا - وصول کریں', now: 'ابھی', minAgo: 'م', accepted: '✅ آرڈر قبول کر لیا', cashSuccess: '💰 {n} ریال کامیابی سے وصول', newOrderAlert: '🔔 نیا آرڈر!', sosConfirm: '🚨 ایمرجنسی موڈ آن کریں؟', sosSent: '🚨 ایمرجنسی الرٹ بھیجا گیا!', noteSent: '📨 ریسٹورنٹ کو نوٹ بھیجا گیا', fillAmount: '⚠️ رقم درج کریں', error: '❌ خرابی', copied: '📋 کاپی', orderStatus: { pending: 'زیر التواء', accepted: 'قبول', at_store: 'دکان پر', picked_up: 'اٹھا لیا', in_transit: 'راستے میں', delivered: 'پہنچا دیا', cancelled: 'منسوخ' } },
+  bn: { dir: 'ltr', driverLogin: 'ড্রাইভার লগইন', enterPhone: 'লগইন করতে ফোন নম্বর দিন', login: 'লগইন', logout: 'লগআউট', appName: '🚀 সাইবার ডেলিভারি', tabOrders: '📦 অর্ডার', tabMap: '🗺️ মানচিত্র', tabStats: '📊 পরিসংখ্যান', todayEarnings: 'আজকের আয়', todayDeliveries: 'ডেলিভারি', rating: 'রেটিং', searchingOrders: 'অর্ডার খোঁজা হচ্ছে...', noOrders: 'এখন কোনো অর্ডার নেই', ordersAuto: 'নতুন অর্ডার স্বয়ংক্রিয়ভাবে দেখাবে', liveMap: '📍 লাইভ মানচিত্র', hotspots: '🔥 লাভজনক এলাকা', waitingOrder: 'অর্ডারের অপেক্ষায়...', beginner: 'শুরূকারী', level: 'স্তর', ordersToNextLevel: 'পরবর্তী স্তরের অর্ডার', achievements: 'অর্জন', cashCollection: 'নগদ সংগ্রহ', requiredAmount: 'প্রয়োজনীয় পরিমাণ', currency: 'রিয়াল', amountLess: 'পরিমাণ প্রয়োজনের কম', confirm: '✅ সংগ্রহ নিশ্চিত', sendNote: '📨 রেস্টুরেন্টে নোট পাঠান', cancel: 'বাতিল', newOrder: '🆕 নতুন অর্ডার', accept: '✅ গ্রহণ', total: 'মোট', activeDelivery: '🚗 সক্রিয় ডেলিভারি', inProgress: 'চলমান', openNav: '🧭 নেভিগেশন খুলুন', atStore: '🏪 দোকানে পৌঁছেছেন', pickedUp: '📦 অর্ডার নিয়েছেন', deliver: '💰 পৌঁছে দিয়েছেন - সংগ্রহ', now: 'এখন', minAgo: 'মি', accepted: '✅ অর্ডার গৃহীত', cashSuccess: '💰 {n} রিয়াল সফলভাবে সংগৃহীত', newOrderAlert: '🔔 নতুন অর্ডার!', sosConfirm: '🚨 SOS মোড সক্রিয় করবেন?', sosSent: '🚨 SOS সতর্কতা পাঠানো হয়েছে!', noteSent: '📨 রেস্টুরেন্টে নোট পাঠানো হয়েছে', fillAmount: '⚠️ পরিমাণ লিখুন', error: '❌ ত্রুটি', copied: '📋 কপি', orderStatus: { pending: 'অপেক্ষমাণ', accepted: 'গৃহীত', at_store: 'দোকানে', picked_up: 'নেওয়া', in_transit: 'পথে', delivered: 'পৌঁছে', cancelled: 'বাতিল' } },
+  hi: { dir: 'ltr', driverLogin: 'ड्राइवर लॉगिन', enterPhone: 'लॉगिन के लिए फ़ोन नंबर दर्ज करें', login: 'लॉगिन', logout: 'लॉगआउट', appName: '🚀 साइबर डिलीवरी', tabOrders: '📦 ऑर्डर', tabMap: '🗺️ मानचित्र', tabStats: '📊 आँकड़े', todayEarnings: 'आज की कमाई', todayDeliveries: 'डिलीवरी', rating: 'रेटिंग', searchingOrders: 'ऑर्डर खोजे जा रहे हैं...', noOrders: 'अभी कोई ऑर्डर नहीं', ordersAuto: 'नए ऑर्डर अपने आप दिखेंगे', liveMap: '📍 लाइव मानचित्र', hotspots: '🔥 लाभदायक क्षेत्र', waitingOrder: 'ऑर्डर की प्रतीक्षा...', beginner: 'शुरुआती', level: 'स्तर', ordersToNextLevel: 'अगले स्तर के ऑर्डर', achievements: 'उपलब्धियाँ', cashCollection: 'नकद संग्रह', requiredAmount: 'आवश्यक राशि', currency: 'रियाल', amountLess: 'राशि आवश्यक से कम है', confirm: '✅ संग्रह की पुष्टि', sendNote: '📨 रेस्तरां को नोट भेजें', cancel: 'रद्द करें', newOrder: '🆕 नया ऑर्डर', accept: '✅ स्वीकार', total: 'कुल', activeDelivery: '🚗 सक्रिय डिलीवरी', inProgress: 'चालू', openNav: '🧭 नेविगेशन खोलें', atStore: '🏪 दुकान पर पहुँचे', pickedUp: '📦 ऑर्डर उठाया', deliver: '💰 डिलीवर - संग्रह', now: 'अभी', minAgo: 'मि', accepted: '✅ ऑर्डर स्वीकृत', cashSuccess: '💰 {n} रियाल सफलतापूर्वक एकत्र', newOrderAlert: '🔔 नया ऑर्डर!', sosConfirm: '🚨 SOS मोड सक्रिय करें?', sosSent: '🚨 SOS अलर्ट भेजा गया!', noteSent: '📨 रेस्तरां को नोट भेजा गया', fillAmount: '⚠️ राशि दर्ज करें', error: '❌ त्रुटि', copied: '📋 कॉपी', orderStatus: { pending: 'लंबित', accepted: 'स्वीकृत', at_store: 'दुकान पर', picked_up: 'ले लिया', in_transit: 'रास्ते में', delivered: 'पहुँचा', cancelled: 'रद्द' } }
+};
+
+let currentLang = localStorage.getItem('cyberLang') || 'ar';
+let driver = null;
+let currentOrder = null;
+let map = null;
+let driverMarker = null;
+let destMarker = null;
+let routeLine = null;
+let ordersCache = [];
+
+function t(key, replacements = {}) {
+  const lang = I18N[currentLang];
+  if (!lang) return key;
+  const keys = key.split('.');
+  let val = lang;
+  for (const k of keys) { if (val && typeof val === 'object') val = val[k]; else return key; }
+  let result = val || key;
+  Object.keys(replacements).forEach(k => { result = result.replace('{' + k + '}', replacements[k]); });
+  return result;
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('cyberLang', lang);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = I18N[lang].dir;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if (typeof val === 'string') el.textContent = val;
+  });
+  document.querySelectorAll('.lang-btn').forEach(btn => { btn.classList.toggle('active', btn.getAttribute('data-lang') === lang); });
+  renderOrders();
+  if (currentOrder) renderActiveOrder(currentOrder, currentOrder.totalAmount);
+}
+
+function showToast(msg, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(-50%) translateY(-20px)'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+async function driverLogin() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  if (!phone) { showToast(t('fillAmount'), 'error'); return; }
+  const { data, error } = await db.from('driver_stats').select('*').eq('driver_phone', phone).single();
+  if (error || !data) {
+    const { data: newData, error: insertError } = await db.from('driver_stats').insert([{ driver_id: 'driver_' + Date.now(), driver_name: 'Driver ' + phone.slice(-4), driver_phone: phone, preferred_language: currentLang }]).select().single();
+    if (insertError) { showToast(t('error'), 'error'); return; }
+    driver = newData;
+  } else {
+    driver = data;
+  }
+  localStorage.setItem('driverSession', JSON.stringify(driver));
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('driverNameDisplay').textContent = driver.driver_name + ' | ' + driver.driver_phone;
+  initApp();
+}
+
+function logout() {
+  localStorage.removeItem('driverSession');
+  location.reload();
+}
+
+function initApp() {
+  setLang(currentLang);
+  initMap();
+  loadOrders();
+  loadStats();
+  startRealtime();
+  trackLocation();
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
+}
+
+function initMap() {
+  map = L.map('map').setView([24.7136, 46.6753], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OSM' }).addTo(map);
+  const icon = L.divIcon({ html: '<div style="width:20px;height:20px;background:#00ff66;border:3px solid white;border-radius:50%;box-shadow:0 0 10px #00ff66"></div>', iconSize: [20, 20], className: '' });
+  driverMarker = L.marker([24.7136, 46.6753], { icon }).addTo(map);
+}
+
+function trackLocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.watchPosition(pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    if (driverMarker) driverMarker.setLatLng([lat, lng]);
+    if (driver) { db.from('driver_stats').update({ current_lat: lat, current_lng: lng, is_online: true }).eq('driver_id', driver.driver_id); }
+  }, null, { enableHighAccuracy: true });
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  document.getElementById('tab-' + tab).classList.remove('hidden');
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('tab-btn-' + tab).classList.add('active');
+  if (tab === 'map' && map) setTimeout(() => map.invalidateSize(), 100);
+}
+
+async function loadOrders() {
+  const { data, error } = await db.from('orders').select('*').eq('status', 'pending').order('created_at', { ascending: false });
+  if (error) return;
+  ordersCache = data || [];
+  renderOrders();
+}
+
+function renderOrders() {
+  const list = document.getElementById('ordersList');
+  if (ordersCache.length === 0) {
+    list.innerHTML = `<div class="text-center text-gray-500 py-10"><div class="text-4xl mb-2">😴</div><p class="text-sm">${t('noOrders')}</p><p class="text-xs mt-1 text-gray-600">${t('ordersAuto')}</p></div>`;
+    return;
+  }
+  list.innerHTML = ordersCache.map(o => {
+    const total = (parseFloat(o.price) || 0) + (parseFloat(o.delivery_fee) || 0);
+    const timeAgo = formatTimeAgo(o.created_at);
+    return `
+      <div class="card p-4 glow-pink slide-up space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="bg-pink-600 text-white text-[10px] font-black px-2 py-1 rounded-lg">${t('newOrder')}</span>
+          <span class="text-[10px] text-gray-500">${timeAgo}</span>
+        </div>
+        <div>
+          <h3 class="font-black text-pink-400">${o.customer_name}</h3>
+          <p class="text-xs text-gray-400 mt-1">📍 ${o.address}</p>
+          ${o.customer_phone ? `<a href="tel:${o.customer_phone}" class="text-xs text-cyan-400 block mt-1">📞 ${o.customer_phone}</a>` : ''}
+          ${o.notes ? `<p class="text-[10px] text-gray-500 mt-1 italic">💬 ${o.notes}</p>` : ''}
+        </div>
+        <div class="flex items-center justify-between pt-2 border-t border-gray-800">
+          <div>
+            <span class="text-[10px] text-gray-500 block">${t('total')}</span>
+            <span class="text-xl font-black neon-green">${total.toFixed(0)} ${t('currency')}</span>
+          </div>
+          <button onclick="acceptOrder('${o.id}', ${total})" class="btn-primary px-5 py-2.5 rounded-xl pulse-success">${t('accept')}</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function acceptOrder(orderId, total) {
+  const { error } = await db.from('orders').update({ status: 'accepted', driver_id: driver.driver_id, driver_name: driver.driver_name, driver_phone: driver.driver_phone, accepted_at: new Date().toISOString() }).eq('id', orderId);
+  if (error) { showToast(t('error'), 'error'); return; }
+  const { data: order } = await db.from('orders').select('*').eq('id', orderId).single();
+  currentOrder = { ...order, totalAmount: total };
+  document.getElementById('ordersList').classList.add('hidden');
+  renderActiveOrder(order, total);
+  showDestination(order);
+  switchTab('map');
+  showToast(t('accepted'));
+}
+
+function renderActiveOrder(o, total) {
+  const card = document.getElementById('activeOrderCard');
+  card.classList.remove('hidden');
+  card.innerHTML = `
+    <div class="card p-4 glow-green space-y-3">
+      <div class="flex justify-between items-center">
+        <span class="text-sm font-black neon-green">${t('activeDelivery')}</span>
+        <span class="bg-yellow-500/20 text-yellow-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-yellow-500">${t('inProgress')}</span>
+      </div>
+      <div class="text-center bg-black/40 rounded-xl p-3">
+        <div class="text-[10px] text-gray-500">${t('requiredAmount')}</div>
+        <div class="text-2xl font-black neon-green">${total.toFixed(0)} ${t('currency')}</div>
+      </div>
+      <div class="text-xs text-gray-400">
+        <p>👤 ${o.customer_name}</p>
+        <p>📍 ${o.address}</p>
+      </div>
+      <div class="space-y-2">
+        <button onclick="openNavigation()" class="w-full py-2.5 rounded-xl bg-blue-500/20 border border-blue-500 text-blue-400 font-bold text-sm">${t('openNav')}</button>
+        <button onclick="updateStatus('at_store')" class="w-full py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500 text-cyan-400 font-bold text-sm">${t('atStore')}</button>
+        <button onclick="updateStatus('picked_up')" class="w-full py-2.5 rounded-xl bg-purple-500/20 border border-purple-500 text-purple-400 font-bold text-sm">${t('pickedUp')}</button>
+        <button onclick="openCashModal(${total})" class="btn-primary w-full py-3 rounded-xl">${t('deliver')}</button>
+      </div>
+    </div>
+  `;
+}
+
+async function updateStatus(status) {
+  if (!currentOrder) return;
+  await db.from('orders').update({ status, updated_at: new Date().toISOString() }).eq('id', currentOrder.id);
+  showToast(t('orderStatus.' + status));
+}
+
+function openNavigation() {
+  if (!currentOrder) return;
+  const addr = encodeURIComponent(currentOrder.address);
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${addr}`, '_blank');
+}
+
+function showDestination(order) {
+  const lat = order.customer_lat || 24.7136;
+  const lng = order.customer_lng || 46.6753;
+  if (destMarker) map.removeLayer(destMarker);
+  if (routeLine) map.removeLayer(routeLine);
+  const icon = L.divIcon({ html: '<div style="width:20px;height:20px;background:#ff0055;border:3px solid white;border-radius:50%;box-shadow:0 0 10px #ff0055"></div>', iconSize: [20, 20], className: '' });
+  destMarker = L.marker([lat, lng], { icon }).addTo(map);
+  routeLine = L.polyline([[24.7136, 46.6753], [lat, lng]], { color: '#00ff66', weight: 4, opacity: 0.7, dashArray: '10, 10' }).addTo(map);
+  map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+  document.getElementById('mapInfo').textContent = `📏 ${t('total')}: ${calcDistance(24.7136, 46.6753, lat, lng).toFixed(1)} km`;
+}
+
+function calcDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; const dLat = (lat2-lat1) * Math.PI/180; const dLon = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function showHeatmap() {
+  const spots = [{ lat: 24.7136, lng: 46.6753, r: 500, c: '#ff0055' }, { lat: 24.75, lng: 46.7, r: 400, c: '#ffcc00' }, { lat: 24.68, lng: 46.72, r: 350, c: '#00ff66' }];
+  spots.forEach(s => { L.circle([s.lat, s.lng], { radius: s.r, color: s.c, fillColor: s.c, fillOpacity: 0.25, weight: 2 }).addTo(map); });
+}
+
+function openCashModal(total) {
+  document.getElementById('cashModal').classList.remove('hidden');
+  document.getElementById('modalAmount').innerHTML = total.toFixed(0) + ' <span data-i18n="currency">' + t('currency') + '</span>';
+  document.getElementById('cashInput').value = '';
+  document.getElementById('cashWarning').classList.add('hidden');
+}
+
+function closeCashModal() { document.getElementById('cashModal').classList.add('hidden'); }
+
+async function confirmCash() {
+  const collected = parseFloat(document.getElementById('cashInput').value);
+  if (!collected || collected <= 0) { showToast(t('fillAmount'), 'error'); return; }
+  if (collected < currentOrder.totalAmount) { document.getElementById('cashWarning').classList.remove('hidden'); return; }
+  await db.from('orders').update({ status: 'delivered', cash_collected: collected, delivered_at: new Date().toISOString() }).eq('id', currentOrder.id);
+  showToast(t('cashSuccess', { n: collected }));
+  closeCashModal();
+  resetToOrders();
+  loadOrders();
+  loadStats();
+}
+
+async function sendNoteToBoss() {
+  const collected = parseFloat(document.getElementById('cashInput').value) || 0;
+  await db.from('orders').update({ admin_notes: 'Driver collected: ' + collected, updated_at: new Date().toISOString() }).eq('id', currentOrder.id);
+  showToast(t('noteSent'));
+  closeCashModal();
+}
+
+function resetToOrders() {
+  currentOrder = null;
+  document.getElementById('activeOrderCard').classList.add('hidden');
+  document.getElementById('ordersList').classList.remove('hidden');
+  if (destMarker) map.removeLayer(destMarker);
+  if (routeLine) map.removeLayer(routeLine);
+  switchTab('orders');
+}
+
+async function loadStats() {
+  if (!driver) return;
+  const today = new Date().toISOString().split('T')[0];
+  const { data: delivered } = await db.from('orders').select('cash_collected').eq('driver_id', driver.driver_id).eq('status', 'delivered').gte('delivered_at', today);
+  const totalCash = (delivered || []).reduce((s, o) => s + (parseFloat(o.cash_collected) || 0), 0);
+  document.getElementById('todayEarnings').textContent = totalCash.toFixed(0);
+  document.getElementById('todayOrders').textContent = (delivered || []).length;
+  document.getElementById('driverRating').textContent = driver.rating || '5.0';
+  renderAchievements((delivered || []).length + (driver.total_deliveries || 0));
+}
+
+function renderAchievements(total) {
+  const achievements = [{ icon: '🎯', name: '1' }, { icon: '⭐', name: '10' }, { icon: '🏆', name: '50' }, { icon: '👑', name: '100' }, { icon: '💎', name: '200' }, { icon: '🦁', name: '500' }, { icon: '🚀', name: '1K' }, { icon: '🌟', name: '5K' }];
+  const needs = [1, 10, 50, 100, 200, 500, 1000, 5000];
+  document.getElementById('achievementsList').innerHTML = achievements.map((a, i) => `<div class="p-2 rounded-xl ${total >= needs[i] ? 'bg-yellow-500/20 border border-yellow-500/50' : 'bg-gray-800/50 opacity-40'}"><div class="text-2xl">${a.icon}</div><div class="text-[9px] text-gray-400 mt-1">${a.name}</div></div>`).join('');
+  const levels = [{ min: 0, name: 'مبتدئ', icon: '🌱', num: 1 }, { min: 10, name: 'نشيط', icon: '🏃', num: 2 }, { min: 30, name: 'محترف', icon: '⭐', num: 3 }, { min: 60, name: 'خبير', icon: '🏆', num: 4 }, { min: 100, name: 'أسطورة', icon: '👑', num: 5 }];
+  const level = levels.filter(l => total >= l.min).pop() || levels[0];
+  const nextLevel = levels.find(l => l.min > total);
+  document.getElementById('levelName').innerHTML = `${level.icon} ${t('beginner')}`;
+  document.getElementById('levelNum').textContent = level.num;
+  document.getElementById('levelIcon').textContent = level.icon;
+  if (nextLevel) { const progress = ((total - level.min) / (nextLevel.min - level.min)) * 100; document.getElementById('levelProgress').style.width = progress + '%'; document.getElementById('nextLevelOrders').textContent = nextLevel.min - total; }
+  else { document.getElementById('levelProgress').style.width = '100%'; document.getElementById('nextLevelOrders').textContent = '0'; }
+}
+
+function startRealtime() {
+  db.channel('driver-orders-' + driver.driver_id).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => { showToast(t('newOrderAlert')); loadOrders(); }).subscribe();
+}
+
+async function triggerSOS() {
+  if (!confirm(t('sosConfirm'))) return;
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      await db.from('emergency_alerts').insert([{ driver_id: driver.driver_id, driver_name: driver.driver_name, location: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }), alert_type: 'sos', message: 'SOS from ' + driver.driver_name }]);
+      showToast(t('sosSent'));
+    });
+  }
+}
+
+function formatTimeAgo(ts) { const diff = Math.floor((Date.now() - new Date(ts)) / 1000); if (diff < 60) return t('now'); if (diff < 3600) return Math.floor(diff / 60) + t('minAgo'); return Math.floor(diff / 3600) + 'h'; }
+
+window.addEventListener('DOMContentLoaded', () => {
+  const session = localStorage.getItem('driverSession');
+  if (session) {
+    driver = JSON.parse(session);
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('driverNameDisplay').textContent = driver.driver_name + ' | ' + driver.driver_phone;
+    initApp();
+  }
+  document.getElementById('loginPhone').addEventListener('keypress', (e) => { if (e.key === 'Enter') driverLogin(); });
+});
+</script>
+</body>
+</html>
