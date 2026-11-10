@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CyberDelivery | لوحة الإدارة</title>
+    <meta name="theme-color" content="#05050a">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Tajawal', sans-serif; }
+        body { background: #05050a; color: #e5e7eb; }
+        .neon-cyan { color: #00f0ff; text-shadow: 0 0 10px rgba(0,240,255,0.5); }
+        .neon-green { color: #00ff66; text-shadow: 0 0 10px rgba(0,255,102,0.5); }
+        .neon-pink { color: #ff0055; text-shadow: 0 0 10px rgba(255,0,85,0.5); }
+        .glow-cyan { box-shadow: 0 0 20px rgba(0,240,255,0.2); }
+        .glow-red { box-shadow: 0 0 20px rgba(255,0,85,0.3); }
+        @keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+        .slide-up { animation: slideUp 0.4s ease-out; }
+        @keyframes pulse-red { 0%, 100% { box-shadow: 0 0 10px rgba(255,0,85,0.5); } 50% { box-shadow: 0 0 30px rgba(255,0,85,0.9); } }
+        .pulse-red { animation: pulse-red 1.5s infinite; }
+        .sidebar-item { transition: all 0.3s; }
+        .sidebar-item.active { background: rgba(0,240,255,0.15); border-color: #00f0ff; color: #00f0ff; }
+        .sidebar-item:hover { background: rgba(0,240,255,0.1); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #00f0ff; border-radius: 3px; }
+        .status-badge { font-size: 10px; padding: 2px 10px; border-radius: 12px; font-weight: bold; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-accepted { background: #dbeafe; color: #1e40af; }
+        .status-at_store { background: #fce7f3; color: #9f1239; }
+        .status-picked_up { background: #e0e7ff; color: #3730a3; }
+        .status-delivered { background: #d1fae5; color: #065f46; }
+        .status-cancelled { background: #fee2e2; color: #991b1b; }
+        #adminMap { height: 300px; border-radius: 16px; }
+        .stat-card { transition: transform 0.3s; }
+        .stat-card:hover { transform: translateY(-3px); }
+    </style>
+</head>
+<body class="text-gray-100 min-h-screen">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 z-50 bg-[#05050a] flex items-center justify-center p-4">
+        <div class="bg-[#0b0f19] border-2 border-cyan-500/40 rounded-3xl p-8 w-full max-w-sm glow-cyan">
+            <div class="text-center mb-6">
+                <div class="text-5xl mb-3">🛡️</div>
+                <h1 class="text-2xl font-black neon-cyan">لوحة الإدارة</h1>
+                <p class="text-xs text-gray-500 mt-1">سايبر توصيل - الرياض</p>
+            </div>
+            <input type="password" id="adminPassword" placeholder="كلمة المرور" class="w-full bg-black/60 border-2 border-gray-700 rounded-xl p-4 text-center text-xl focus:border-cyan-500 outline-none mb-4">
+            <button onclick="login()" class="w-full bg-cyan-600 text-white font-black py-3 rounded-xl active:scale-95 transition">🔓 دخول</button>
+            <p class="text-xs text-gray-500 text-center mt-4">كلمة المرور: <span class="text-cyan-400 font-mono">admin2026</span></p>
+        </div>
+    </div>
+
+    <!-- MAIN ADMIN PANEL -->
+    <div id="adminPanel" class="hidden flex min-h-screen">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-20 md:w-64 bg-[#0b0f19] border-l border-cyan-500/20 p-4 flex flex-col">
+            <div class="text-center mb-8">
+                <div class="text-3xl">🛡️</div>
+                <h2 class="text-sm font-black neon-cyan mt-2 hidden md:block">لوحة الإدارة</h2>
+            </div>
+            <nav class="space-y-2 flex-grow">
+                <button onclick="switchSection('dashboard')" id="nav-dashboard" class="sidebar-item active w-full flex items-center gap-3 p-3 rounded-xl border border-transparent text-sm font-bold text-gray-400">
+                    <span class="text-xl">📊</span><span class="hidden md:block">نظرة عامة</span>
+                </button>
+                <button onclick="switchSection('orders')" id="nav-orders" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl border border-transparent text-sm font-bold text-gray-400">
+                    <span class="text-xl">📦</span><span class="hidden md:block">الطلبات</span>
+                </button>
+                <button onclick="switchSection('drivers')" id="nav-drivers" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl border border-transparent text-sm font-bold text-gray-400">
+                    <span class="text-xl">🚗</span><span class="hidden md:block">المندوبون</span>
+                </button>
+                <button onclick="switchSection('restaurants')" id="nav-restaurants" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl border border-transparent text-sm font-bold text-gray-400">
+                    <span class="text-xl">🏪</span><span class="hidden md:block">المطاعم</span>
+                </button>
+                <button onclick="switchSection('emergency')" id="nav-emergency" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl border border-transparent text-sm font-bold text-gray-400">
+                    <span class="text-xl">🚨</span><span class="hidden md:block">الطوارئ</span>
+                    <span id="emergencyBadge" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full mr-auto">0</span>
+                </button>
+                <button onclick="switchSection('map')" id="nav-map" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl border border-transparent text-sm font-bold text-gray-400">
+                    <span class="text-xl">🗺️</span><span class="hidden md:block">الخريطة الحية</span>
+                </button>
+                <button onclick="switchSection('settings')" id="nav-settings" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl border border-transparent text-sm font-bold text-gray-400">
+                    <span class="text-xl">⚙️</span><span class="hidden md:block">الإعدادات</span>
+                </button>
+            </nav>
+            <button onclick="logout()" class="mt-4 w-full flex items-center gap-3 p-3 rounded-xl text-red-400 text-sm font-bold hover:bg-red-500/10 transition">
+                <span class="text-xl">🚪</span><span class="hidden md:block">خروج</span>
+            </button>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-grow p-6 overflow-y-auto">
+            
+            <!-- DASHBOARD -->
+            <section id="section-dashboard" class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-2xl font-black">📊 نظرة عامة</h1>
+                    <span class="text-xs text-gray-500" id="lastUpdate">آخر تحديث: الآن</span>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="stat-card bg-gradient-to-br from-green-900/40 to-green-800/20 border border-green-500/30 rounded-2xl p-5">
+                        <div class="text-xs text-gray-400 mb-1">إجمالي الطلبات اليوم</div>
+                        <div class="text-3xl font-black neon-green" id="statTotalOrders">0</div>
+                    </div>
+                    <div class="stat-card bg-gradient-to-br from-cyan-900/40 to-cyan-800/20 border border-cyan-500/30 rounded-2xl p-5">
+                        <div class="text-xs text-gray-400 mb-1">الكاش المحصل اليوم</div>
+                        <div class="text-3xl font-black neon-cyan" id="statCashToday">0</div>
+                        <div class="text-xs text-cyan-600 mt-2">💰 ريال سعودي</div>
+                    </div>
+                    <div class="stat-card bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-500/30 rounded-2xl p-5">
+                        <div class="text-xs text-gray-400 mb-1">المندوبون النشطون</div>
+                        <div class="text-3xl font-black text-purple-400" id="statActiveDrivers">0</div>
+                    </div>
+                    <div class="stat-card bg-gradient-to-br from-pink-900/40 to-pink-800/20 border border-pink-500/30 rounded-2xl p-5">
+                        <div class="text-xs text-gray-400 mb-1">طلبات في الانتظار</div>
+                        <div class="text-3xl font-black text-pink-400" id="statPendingOrders">0</div>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-[#0b0f19] rounded-2xl p-5 border border-red-500/30">
+                        <h3 class="text-sm font-black text-red-400 mb-4">🚨 تنبيهات طوارئ نشطة</h3>
+                        <div id="dashEmergencyList" class="space-y-2">
+                            <div class="text-center text-gray-600 py-6 text-sm">✅ لا توجد تنبيهات طوارئ</div>
+                        </div>
+                    </div>
+                    <div class="bg-[#0b0f19] rounded-2xl p-5 border border-cyan-500/30">
+                        <h3 class="text-sm font-black neon-cyan mb-4">📋 آخر الطلبات</h3>
+                        <div id="dashRecentOrders" class="space-y-2">
+                            <div class="text-center text-gray-600 py-6 text-sm">جاري التحميل...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ORDERS -->
+            <section id="section-orders" class="hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-2xl font-black">📦 إدارة الطلبات</h1>
+                    <div class="flex gap-2">
+                        <select id="filterStatus" onchange="loadAdminOrders()" class="bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-sm">
+                            <option value="">كل الحالات</option>
+                            <option value="pending">في الانتظار</option>
+                            <option value="accepted">مقبول</option>
+                            <option value="at_store">في المحل</option>
+                            <option value="picked_up">تم الاستلام</option>
+                            <option value="delivered">تم التوصيل</option>
+                            <option value="cancelled">ملغي</option>
+                        </select>
+                        <button onclick="loadAdminOrders()" class="bg-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-bold">🔄</button>
+                    </div>
+                </div>
+                <div id="adminOrdersList" class="space-y-3">
+                    <div class="text-center text-gray-600 py-10">جاري التحميل...</div>
+                </div>
+            </section>
+
+            <!-- DRIVERS -->
+            <section id="section-drivers" class="hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-2xl font-black">🚗 إدارة المندوبين</h1>
+                    <span class="text-xs text-gray-500" id="driversCount">0 مندوب</span>
+                </div>
+                <div id="adminDriversList" class="grid md:grid-cols-2 gap-4">
+                    <div class="text-center text-gray-600 py-10 col-span-2">جاري التحميل...</div>
+                </div>
+            </section>
+
+            <!-- RESTAURANTS -->
+            <section id="section-restaurants" class="hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-2xl font-black">🏪 إدارة المطاعم</h1>
+                    <button onclick="showAddRestaurantModal()" class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold">➕ إضافة مطعم</button>
+                </div>
+                <div id="adminRestaurantsList" class="grid md:grid-cols-2 gap-4">
+                    <div class="text-center text-gray-600 py-10 col-span-2">جاري التحميل...</div>
+                </div>
+            </section>
+
+            <!-- EMERGENCY -->
+            <section id="section-emergency" class="hidden space-y-6">
+                <h1 class="text-2xl font-black text-red-400">🚨 إدارة الطوارئ</h1>
+                <div id="emergencyList" class="space-y-3">
+                    <div class="text-center text-gray-600 py-10">جاري التحميل...</div>
+                </div>
+            </section>
+
+            <!-- MAP -->
+            <section id="section-map" class="hidden space-y-6">
+                <h1 class="text-2xl font-black">🗺️ الخريطة الحية</h1>
+                <div class="bg-[#0b0f19] rounded-2xl p-4 border border-cyan-500/30">
+                    <div class="flex gap-2 mb-3 flex-wrap">
+                        <button onclick="showAllDriversOnMap()" class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold">🚗 المندوبون</button>
+                        <button onclick="showPendingOnMap()" class="bg-yellow-600 text-white px-4 py-2 rounded-xl text-sm font-bold">📦 طلبات معلقة</button>
+                        <button onclick="showDeliveredOnMap()" class="bg-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-bold">✅ تم توصيلها</button>
+                    </div>
+                    <div id="adminMap"></div>
+                </div>
+            </section>
+
+            <!-- SETTINGS -->
+            <section id="section-settings" class="hidden space-y-6">
+                <h1 class="text-2xl font-black">⚙️ الإعدادات</h1>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-[#0b0f19] rounded-2xl p-5 border border-cyan-500/30 space-y-4">
+                        <h3 class="text-sm font-black neon-cyan">🔧 إعدادات النظام</h3>
+                        <div><label class="text-xs text-gray-400 block mb-1">عمولة المنصة (%)</label><input type="number" id="platformCommission" value="15" class="w-full bg-black/60 border border-gray-700 rounded-xl p-3"></div>
+                        <div><label class="text-xs text-gray-400 block mb-1">رسوم التوصيل الأساسية (ريال)</label><input type="number" id="baseDeliveryFee" value="10" class="w-full bg-black/60 border border-gray-700 rounded-xl p-3"></div>
+                        <div><label class="text-xs text-gray-400 block mb-1">رسوم كل كيلومتر (ريال)</label><input type="number" id="perKmFee" value="2" step="0.5" class="w-full bg-black/60 border border-gray-700 rounded-xl p-3"></div>
+                        <button onclick="saveSettings()" class="w-full bg-cyan-600 text-white font-bold py-3 rounded-xl">💾 حفظ الإعدادات</button>
+                    </div>
+                    <div class="bg-[#0b0f19] rounded-2xl p-5 border border-red-500/30 space-y-4">
+                        <h3 class="text-sm font-black text-red-400">⚠️ منطقة الخطر</h3>
+                        <button onclick="cancelAllPending()" class="w-full bg-red-600/20 border border-red-600 text-red-400 font-bold py-3 rounded-xl">❌ إلغاء جميع الطلبات المعلقة</button>
+                        <button onclick="exportData()" class="w-full bg-yellow-600/20 border border-yellow-600 text-yellow-400 font-bold py-3 rounded-xl">📥 تصدير البيانات (JSON)</button>
+                        <button onclick="clearAllData()" class="w-full bg-red-900/40 border-2 border-red-600 text-red-300 font-bold py-3 rounded-xl">🗑️ مسح جميع البيانات</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODALS & TOAST -->
+    <div id="orderModal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <div class="bg-[#0b0f19] border-2 border-cyan-500/50 rounded-3xl p-6 w-full max-w-lg slide-up max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-black neon-cyan">📦 تفاصيل الطلب</h3>
+                <button onclick="closeOrderModal()" class="text-gray-500 hover:text-white text-2xl">✕</button>
+            </div>
+            <div id="orderModalContent"></div>
+        </div>
+    </div>
+
+    <div id="restaurantModal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <div class="bg-[#0b0f19] border-2 border-green-500/50 rounded-3xl p-6 w-full max-w-md slide-up">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-black neon-green">🏪 إضافة مطعم جديد</h3>
+                <button onclick="closeRestaurantModal()" class="text-gray-500 hover:text-white text-2xl">✕</button>
+            </div>
+            <div class="space-y-3">
+                <input type="text" id="restName" placeholder="اسم المطعم" class="w-full bg-black/60 border border-gray-700 rounded-xl p-3">
+                <input type="text" id="restPhone" placeholder="رقم الجوال" class="w-full bg-black/60 border border-gray-700 rounded-xl p-3">
+                <input type="text" id="restAddress" placeholder="العنوان" class="w-full bg-black/60 border border-gray-700 rounded-xl p-3">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="restLat" placeholder="خط العرض" step="0.0001" class="bg-black/60 border border-gray-700 rounded-xl p-3">
+                    <input type="number" id="restLng" placeholder="خط الطول" step="0.0001" class="bg-black/60 border border-gray-700 rounded-xl p-3">
+                </div>
+                <button onclick="addRestaurant()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">✅ إضافة</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded-xl shadow-xl font-bold text-sm"></div>
+
+    <script>
+    const SUPABASE_URL = 'https://hhljyqelqnsltmasxgqv.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Xeo54iI9kxJ0n00f71A_yA_QNvmRC3H';
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const ADMIN_PASSWORD = 'admin2026';
+    let adminMap = null;
+    let mapMarkers = [];
+
+    const statusTexts = {
+        'pending': 'في الانتظار', 'accepted': 'مقبول', 'at_store': 'في المحل',
+        'picked_up': 'تم الاستلام', 'in_transit': 'في الطريق', 'delivered': 'تم التوصيل', 'cancelled': 'ملغي'
+    };
+
+    function login() {
+        const pass = document.getElementById('adminPassword').value;
+        if (pass === ADMIN_PASSWORD) {
+            sessionStorage.setItem('adminAuth', 'true');
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminPanel').classList.remove('hidden');
+            initAdmin();
+        } else { alert('❌ كلمة المرور غير صحيحة'); }
+    }
+
+    function logout() { sessionStorage.removeItem('adminAuth'); location.reload(); }
+
+    function checkAuth() {
+        if (sessionStorage.getItem('adminAuth') === 'true') {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminPanel').classList.remove('hidden');
+            initAdmin();
+        }
+    }
+
+    function initAdmin() {
+        loadDashboard();
+        loadAdminOrders();
+        loadDrivers();
+        loadRestaurants();
+        loadEmergency();
+        initAdminMap();
+        startRealtimeUpdates();
+        setInterval(() => {
+            loadDashboard();
+            document.getElementById('lastUpdate').textContent = 'آخر تحديث: ' + new Date().toLocaleTimeString('ar-SA');
+        }, 15000);
+    }
+
+    async function loadDashboar
