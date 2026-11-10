@@ -1,826 +1,423 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CyberDelivery - Smart Delivery System</title>
-    <meta name="description" content="Smart delivery and cash collection system for drivers and shops">
-    <meta name="theme-color" content="#05050a">
-    
-    <!-- PWA Manifest (Inline) -->
-    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,{
-        'name': 'CyberDelivery',
-        'short_name': 'CyberDel',
-        'description': 'Smart Delivery System',
-        'start_url': '.',
-        'display': 'standalone',
-        'background_color': '#05050a',
-        'theme_color': '#05050a',
-        'orientation': 'portrait',
-        'icons': [{
-            'src': 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22%3E%3Crect fill=%22%2305050a%22 width=%22512%22 height=%22512%22 rx=%2264%22/%3E%3Ctext x=%22256%22 y=%22280%22 font-size=%22200%22 text-anchor=%22middle%22 fill=%22%2300ff66%22 font-family=%22Arial%22 font-weight=%22bold%22%3ECD%3C/text%3E%3C/svg%3E',
-            'sizes': '512x512',
-            'type': 'image/svg+xml',
-            'purpose': 'any maskable'
-        }]
-    }">
-    
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect fill='%2305050a' width='512' height='512' rx='64'/%3E%3Ctext x='256' y='280' font-size='200' text-anchor='middle' fill='%2300ff66' font-family='Arial' font-weight='bold'%3ECD%3C/text%3E%3C/svg%3E">
-    
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberDelivery | لوحة المطعم - إرسال وتتبع الطلبات</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        cyberpunk: {
-                            bg: '#05050a',
-                            card: '#0b0f19',
-                            neonGreen: '#00ff66',
-                            neonPink: '#ff0055',
-                            neonCyan: '#00f0ff',
-                            yellow: '#ffcc00'
-                        }
-                    },
-                    fontFamily: {
-                        urdu: ['Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'serif']
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- Google Fonts for Urdu -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
-    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        [dir="rtl"] { font-family: 'Noto Nastaliq Urdu', serif; }
-        [dir="rtl"] * { letter-spacing: 0; }
-        
-        .neon-glow-green { box-shadow: 0 0 15px rgba(0, 255, 102, 0.4); }
-        .neon-glow-pink { box-shadow: 0 0 15px rgba(255, 0, 85, 0.4); }
-        .neon-glow-cyan { box-shadow: 0 0 15px rgba(0, 240, 255, 0.4); }
-        .neon-text-cyan { text-shadow: 0 0 8px rgba(0, 240, 255, 0.6); }
+        body { 
+            font-family: 'Tajawal', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
         
         @keyframes slideIn {
             from { transform: translateY(-20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-        .animate-slide-in { animation: slideIn 0.3s ease-out; }
         
         @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 102, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 255, 102, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 102, 0); }
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
-        .pulse-success { animation: pulse-ring 1.5s infinite; }
         
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        .animate-slide-in { animation: slideIn 0.3s ease-out; }
+        .pulse-success { animation: pulse-ring 2s infinite; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
         }
-        input[type="number"] { -moz-appearance: textfield; }
+        
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-accepted { background: #dbeafe; color: #1e40af; }
+        .status-at-store { background: #fce7f3; color: #9f1239; }
+        .status-delivered { background: #d1fae5; color: #065f46; }
     </style>
 </head>
-<body class="bg-cyberpunk-bg text-gray-100 font-sans min-h-screen flex flex-col justify-between selection:bg-cyberpunk-neonPink selection:text-white">
+<body class="p-4">
 
-    <!-- LOCK SCREEN -->
-    <div id="lockScreen" class="fixed inset-0 z-50 bg-cyberpunk-bg flex flex-col items-center justify-center p-6">
-        <div class="bg-cyberpunk-card border border-cyberpunk-neonCyan/40 rounded-2xl p-6 w-full max-w-sm neon-glow-cyan text-center">
-            <h2 id="lockTitle" class="text-2xl font-bold text-cyberpunk-neonCyan mb-2 neon-text-cyan">SECURITY LOCK</h2>
-            <p id="lockSubtitle" class="text-xs text-gray-400 mb-6">Enter PIN (1234) to unlock driver session</p>
-            
-            <div id="pinDisplay" class="text-3xl font-mono tracking-widest bg-black/50 border border-gray-800 rounded-xl py-3 mb-6 text-cyberpunk-neonGreen">____</div>
-            
-            <div class="grid grid-cols-3 gap-3">
-                <button onclick="pressPin('1')" class="bg-gray-900 border border-gray-800 hover:border-cyberpunk-neonCyan py-4 rounded-xl text-xl font-bold active:scale-95 transition">1</button>
-                <button onclick="pressPin('2')" class="bg-gray-900 border border-gray-800 hover:border-cyberpunk-neonCyan py-4 rounded-xl text-xl font-bold active:scale-95 transition">2</button>
-                <button onclick="pressPin('3')" class="bg-gray-900 border border-gray-800 hover:border-cyberpunk-neonCyan py-4 rounded-xl text-xl font-bold active:scale-95 transition">3</button>
-                <button onclick="pressPin('4')" class="bg-gray-900 border border-gray-800 hover:border-cyberpunk-neonCyan py-4 rounded-xl text-xl font-bold active:scale-95 transition">4</button>
-                <button onclick="pressPin('5')" class="bg-gray-900 border border-gray-800 hover:border-cyberpunk-neonCyan py-4 rounded-xl text-xl font-bold active:scale-95 transition">5</button>
-                <button onclick="pressPin('6')" class="bg-gray-900 border border-gray-800 hover:border-cyberpunk-neonCyan py-4 rounded-xl text-xl font-bold active:scale-95 transition">6</button>
-                <button onclick="pressPin('7')" class="bg-gray-900 border border-gray-800 hover:border-cyberpunk-neonCyan py-4 rounded-xl text-xl font-bold active:scale-95 transition">7</button>
-                <button onclick="pressPin('8')" class="bg-gray-900 border border-gray-800 hover:border-cyberpunk-neonCyan py-4 rounded-xl text-xl font-bold active:scale-95 transition">8</button>
-                <button onclick="pressPin('9')" class="bg-gray-900 border border-gray-800 hover:border-cyberpunk-neonCyan py-4 rounded-xl text-xl font-bold active:scale-95 transition">9</button>
-                <button onclick="clearPin()" class="bg-red-950/40 border border-red-900 text-red-400 py-4 rounded-xl text-sm font-bold active:scale-95 transition">CLR</button>
-                <button onclick="pressPin('0')" class="bg-gray-900 border border-gray-800 hover:border-cyberpunk-neonCyan py-4 rounded-xl text-xl font-bold active:scale-95 transition">0</button>
-                <button onclick="submitPin()" class="bg-cyberpunk-neonCyan/20 border border-cyberpunk-neonCyan text-cyberpunk-neonCyan py-4 rounded-xl text-sm font-bold active:scale-95 transition">ENT</button>
+    <!-- Header -->
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8 text-white">
+            <div class="inline-block bg-white/10 backdrop-blur-sm rounded-2xl px-6 py-3 mb-4">
+                <h1 class="text-4xl font-black mb-2">🏪 لوحة المطعم</h1>
+                <p class="text-white/90">أرسل طلباتك وتتبع المندوبين مباشرة</p>
             </div>
-            <p id="pinError" class="text-red-500 text-xs mt-4 hidden">Incorrect PIN. Try 1234</p>
         </div>
-    </div>
 
-    <!-- MAIN APP CONTAINER -->
-    <div id="mainApp" class="flex flex-col flex-grow max-w-md mx-auto w-full p-4 space-y-4">
-        
-        <!-- HEADER -->
-        <header class="bg-cyberpunk-card border border-cyberpunk-neonCyan/30 rounded-2xl p-4 flex flex-col space-y-3 neon-glow-cyan">
-            <div class="flex items-center justify-between gap-2">
-                <!-- Language Selector -->
-                <select onchange="changeLanguage(this.value)" id="langSelect" class="bg-cyberpunk-neonCyan/10 border-2 border-cyberpunk-neonCyan text-cyberpunk-neonCyan px-3 py-2 rounded-xl font-bold text-sm uppercase tracking-wider active:scale-95 transition cursor-pointer">
-                    <option value="en">English</option>
-                    <option value="ur">اردو</option>
-                    <option value="bn">বাংলা</option>
-                    <option value="hi">हिंदी</option>
-                </select>
+        <!-- Main Grid -->
+        <div class="grid md:grid-cols-2 gap-6">
+            
+            <!-- LEFT: Order Form -->
+            <div class="bg-white rounded-3xl shadow-2xl border border-white/20 p-6 backdrop-blur-sm">
+                <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center gap-2">
+                    <span class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">📦</span>
+                    إرسال طلب جديد
+                </h2>
                 
-                <!-- Share Button -->
-                <button onclick="shareApp()" class="bg-emerald-500/10 border border-emerald-500 text-emerald-400 p-2.5 rounded-xl flex items-center space-x-1 active:scale-95 transition" title="Share">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
-                    </svg>
+                <div class="space-y-4">
+                    <!-- Customer Name -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">اسم العميل / رقم الطلب</label>
+                        <input type="text" id="custName" placeholder="مثال: طلب رقم 1234" class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition">
+                    </div>
+
+                    <!-- Phone -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">رقم الجوال (اختياري)</label>
+                        <input type="tel" id="custPhone" placeholder="05xxxxxxxx" class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition">
+                    </div>
+
+                    <!-- Address -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">عنوان التوصيل التفصيلي</label>
+                        <textarea id="custAddress" rows="2" placeholder="الحي، الشارع، رقم المبنى، علامة مميزة..." class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition resize-none"></textarea>
+                    </div>
+
+                    <!-- Price -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">قيمة الطلب (بالريال)</label>
+                        <input type="number" id="orderPrice" placeholder="50" class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl text-2xl font-black text-emerald-600 focus:outline-none focus:border-emerald-500 focus:bg-white transition">
+                    </div>
+
+                    <!-- Delivery Fee -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">رسوم التوصيل (بالريال)</label>
+                        <input type="number" id="deliveryFee" value="10" class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition">
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">ملاحظات (اختياري)</label>
+                        <input type="text" id="orderNotes" placeholder="مثال: الدور الثالث، اتصل قبل الوصول" class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button onclick="sendOrderToDriver()" id="submitBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg py-4 rounded-xl shadow-lg shadow-emerald-200 transition active:scale-95 mt-4 pulse-success">
+                        🚀 إرسال الطلب للمندوب
+                    </button>
+
+                    <!-- Status Message -->
+                    <div id="statusMsg" class="hidden text-center p-3 rounded-xl text-sm font-bold mt-4"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Live Orders & Stats -->
+            <div class="space-y-6">
+                
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white rounded-2xl shadow-xl p-4 border border-white/20">
+                        <div class="text-gray-500 text-sm mb-1">إجمالي اليوم</div>
+                        <div class="text-2xl font-black text-gray-800" id="todayTotal">0</div>
+                        <div class="text-xs text-gray-400 mt-1">طلب</div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-xl p-4 border border-white/20">
+                        <div class="text-gray-500 text-sm mb-1">الكاش المحصل</div>
+                        <div class="text-2xl font-black text-emerald-600" id="cashCollected">0</div>
+                        <div class="text-xs text-gray-400 mt-1">ريال</div>
+                    </div>
+                </div>
+
+                <!-- Active Orders List -->
+                <div class="bg-white rounded-3xl shadow-2xl border border-white/20 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-black text-gray-800 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">📋</span>
+                            الطلبات النشطة
+                        </h2>
+                        <button onclick="refreshOrders()" class="text-sm text-blue-600 hover:text-blue-700 font-bold">
+                            🔄 تحديث
+                        </button>
+                    </div>
+                    
+                    <div id="ordersList" class="space-y-3 max-h-96 overflow-y-auto">
+                        <div class="text-center text-gray-400 py-8">
+                            <div class="text-4xl mb-2">📭</div>
+                            <p>لا توجد طلبات نشطة</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invite Driver Button -->
+                <button onclick="shareApp()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-lg py-4 rounded-xl shadow-lg transition active:scale-95 hover:from-purple-500 hover:to-pink-500">
+                    🤝 ادعُ مندوباً جديداً للشبكة
                 </button>
             </div>
-            
-            <!-- Live Clock -->
-            <div class="bg-black/40 border border-gray-800 rounded-xl p-3 flex justify-between items-center text-center">
-                <div>
-                    <span id="dateText" class="text-xs text-gray-400 block">--/--/----</span>
-                    <span id="dayText" class="text-sm font-bold text-cyberpunk-neonCyan">---</span>
-                </div>
-                <div class="border-l border-gray-800 pl-4 rtl:border-l-0 rtl:border-r rtl:pr-4">
-                    <span id="timeText" class="text-lg font-mono font-bold text-cyberpunk-neonGreen">00:00:00</span>
-                </div>
-            </div>
-        </header>
-
-        <!-- DASHBOARD BODY -->
-        <main class="flex-grow flex flex-col space-y-4">
-            
-            <!-- TRIGGER ORDER BUTTON (Testing) -->
-            <button onclick="triggerNewOrder()" class="w-full bg-gradient-to-r from-cyberpunk-neonPink/20 to-cyberpunk-neonCyan/20 border border-cyberpunk-neonPink text-cyberpunk-neonPink font-bold py-3 rounded-xl neon-glow-pink active:scale-95 transition text-sm">
-                <span data-i18n="simulateOrder">+ Simulate Incoming Order</span>
-            </button>
-
-            <!-- NEW ORDER ALERT -->
-            <div id="orderAlertBox" class="hidden bg-cyberpunk-card border-2 border-cyberpunk-neonPink rounded-2xl p-5 neon-glow-pink animate-slide-in space-y-4">
-                <div class="flex items-center justify-between">
-                    <span class="bg-cyberpunk-neonPink text-black font-black text-xs px-2 py-1 rounded" data-i18n="criticalAlert">CRITICAL ALERT</span>
-                    <span class="text-xs text-gray-400 font-mono">Order #<span id="orderId">8842</span></span>
-                </div>
-                <div>
-                    <h3 id="alertTitleText" class="text-xl font-black text-cyberpunk-neonPink" data-i18n="newOrder">You have a new order!</h3>
-                    <p class="text-sm text-gray-300 mt-1">
-                        <span data-i18n="distance">Distance</span>: 2.4 km • 
-                        <span data-i18n="price">Price</span>: <span class="text-cyberpunk-neonGreen font-bold"><span id="orderPriceDisplay">50</span> SAR</span>
-                    </p>
-                    <p class="text-xs text-gray-400 mt-1" data-i18n="address">Delivery Address: King Fahd Rd, Block 4</p>
-                </div>
-                <button onclick="acceptOrder()" id="acceptBtn" class="w-full bg-cyberpunk-neonGreen text-black font-black py-4 rounded-xl text-lg neon-glow-green active:scale-95 transition pulse-success" data-i18n="acceptOrder">ACCEPT ORDER</button>
-            </div>
-
-            <!-- ACTIVE ORDER PANEL -->
-            <div id="activeOrderPanel" class="hidden bg-cyberpunk-card border border-cyberpunk-neonGreen/40 rounded-2xl p-5 neon-glow-green space-y-4">
-                <div class="flex justify-between items-center border-b border-gray-800 pb-3">
-                    <span class="text-xs font-mono text-gray-400" data-i18n="activeDelivery">ACTIVE DELIVERY</span>
-                    <span id="orderStatusBadge" class="bg-cyberpunk-yellow/10 text-cyberpunk-yellow border border-cyberpunk-yellow px-2.5 py-0.5 rounded-full text-xs font-bold" data-i18n="accepted">ACCEPTED</span>
-                </div>
-                
-                <!-- Countdown Timer -->
-                <div class="text-center py-2 bg-black/50 rounded-xl border border-gray-800">
-                    <span class="text-xs text-gray-400 block mb-1" data-i18n="timeRemaining">Time Remaining</span>
-                    <span id="countdownTimer" class="text-3xl font-mono font-black text-cyberpunk-neonCyan">30:00</span>
-                </div>
-
-                <!-- Workflow Actions -->
-                <div id="workflowActions" class="space-y-3">
-                    <button onclick="markAtStore()" id="atStoreBtn" class="w-full bg-cyberpunk-neonCyan/20 border border-cyberpunk-neonCyan text-cyberpunk-neonCyan font-bold py-3 rounded-xl active:scale-95 transition" data-i18n="atStore">At Store (Arrived)</button>
-                </div>
-
-                <!-- Cash Collection -->
-                <div id="cashCollectionSection" class="hidden space-y-3 pt-2">
-                    <label class="block text-xs font-bold text-gray-300" data-i18n="enterCash">Enter Cash Collected (SAR):</label>
-                    <input type="number" id="cashInput" placeholder="e.g. 50" class="w-full bg-black/60 border border-gray-700 rounded-xl p-3 text-cyberpunk-neonGreen font-mono text-lg focus:border-cyberpunk-neonGreen outline-none">
-                    <div id="cashMediationPanel" class="hidden"></div>
-                    <button onclick="confirmDelivery()" class="w-full bg-cyberpunk-neonGreen text-black font-black py-3 rounded-xl active:scale-95 transition" data-i18n="verifyComplete">Verify & Complete Delivery</button>
-                </div>
-            </div>
-
-            <!-- SUCCESS RECEIPT -->
-            <div id="successReceipt" class="hidden bg-cyberpunk-card border border-cyberpunk-neonGreen rounded-2xl p-5 text-center space-y-3 neon-glow-green">
-                <div class="w-12 h-12 bg-cyberpunk-neonGreen/20 text-cyberpunk-neonGreen rounded-full flex items-center justify-center mx-auto text-2xl font-bold pulse-success">✓</div>
-                <h3 class="text-lg font-bold text-cyberpunk-neonGreen" data-i18n="deliverySuccessful">Delivery Successful!</h3>
-                <p class="text-xs text-gray-300">
-                    <span data-i18n="collected">Collected</span>: 
-                    <span id="receiptAmount" class="font-bold text-white">50</span> SAR
-                </p>
-                <button onclick="resetApp()" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 py-2.5 rounded-xl text-xs font-bold transition" data-i18n="readyForNext">Ready for Next Order</button>
-            </div>
-
-        </main>
-
-        <!-- BOSS NOTIFICATION LOG -->
-        <footer class="bg-cyberpunk-card border border-cyberpunk-neonPink/30 rounded-2xl p-3 neon-glow-pink">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-cyberpunk-neonPink flex items-center space-x-1 rtl:space-x-reverse">
-                    <span class="w-2 h-2 rounded-full bg-cyberpunk-neonPink animate-ping inline-block"></span>
-                    <span data-i18n="bossLog">BOSS SMS LOG</span>
-                </span>
-                <button onclick="clearLog()" class="text-[10px] font-mono text-gray-500 hover:text-gray-300 transition" data-i18n="clear">Clear</button>
-            </div>
-            <div id="smsLogContainer" class="bg-black/60 border border-gray-800 rounded-xl p-2.5 h-32 overflow-y-auto space-y-2 text-xs font-mono">
-                <div class="text-gray-500">[System]: <span data-i18n="connected">Connected to Boss SMS Gateway</span></div>
-            </div>
-        </footer>
+        </div>
     </div>
 
     <script>
         // ============================================
-        // INTERNATIONALIZATION (i18n) SYSTEM
+        // إعداد الاتصال بقاعدة البيانات
         // ============================================
-        const translations = {
-            en: {
-                dir: 'ltr',
-                lang: 'English',
-                securityLock: 'SECURITY LOCK',
-                lockSubtitle: 'Enter PIN (1234) to unlock driver session',
-                simulateOrder: '+ Simulate Incoming Order',
-                criticalAlert: 'CRITICAL ALERT',
-                newOrder: 'You have a new order!',
-                distance: 'Distance',
-                price: 'Price',
-                address: 'Delivery Address: King Fahd Rd, Block 4',
-                acceptOrder: 'ACCEPT ORDER',
-                activeDelivery: 'ACTIVE DELIVERY',
-                accepted: 'ACCEPTED',
-                timeRemaining: 'Time Remaining',
-                atStore: 'At Store (Arrived)',
-                deliverOrder: 'Deliver Order',
-                atStoreStatus: 'AT STORE',
-                enterCash: 'Enter Cash Collected (SAR):',
-                verifyComplete: 'Verify & Complete Delivery',
-                deliverySuccessful: 'Delivery Successful!',
-                collected: 'Collected',
-                readyForNext: 'Ready for Next Order',
-                bossLog: 'BOSS SMS LOG',
-                clear: 'Clear',
-                connected: 'Connected to Boss SMS Gateway',
-                incorrectPin: 'Incorrect PIN. Try 1234',
-                cashMismatch: 'Cash amount differs from order',
-                expectedAmount: 'Expected',
-                collectedAmount: 'You collected',
-                mediationQuestion: 'Is there a discount or missing items?',
-                sendToBoss: 'Send Note to Boss',
-                correctAmount: 'Correct Amount',
-                mediationSent: 'Note sent to Boss for approval',
-                unlocked: 'Driver unlocked session successfully',
-                newOrderBroadcast: 'New order broadcasted',
-                orderAccepted: 'Driver ACCEPTED order',
-                arrivedAtStore: 'Driver arrived AT STORE',
-                mediationRequested: 'Driver requested boss approval',
-                deliveryCompleted: 'Delivery completed. Cash collected'
-            },
-            ur: {
-                dir: 'rtl',
-                lang: 'اردو',
-                securityLock: 'سیکیورٹی لاک',
-                lockSubtitle: 'ڈرائیور سیشن ان لاک کرنے کے لیے PIN درج کریں (1234)',
-                simulateOrder: '+ نیا آرڈر دکھائیں',
-                criticalAlert: 'اہم الرٹ',
-                newOrder: 'آپ کے پاس نیا آرڈر ہے!',
-                distance: 'فاصلہ',
-                price: 'قیمت',
-                address: 'ترسیل کا پتہ: شاہ فہد روڈ، بلاک 4',
-                acceptOrder: 'آرڈر قبول کریں',
-                activeDelivery: 'فعال ترسیل',
-                accepted: 'قبول شدہ',
-                timeRemaining: 'باقی وقت',
-                atStore: 'اسٹور پر (پہنچ گیا)',
-                deliverOrder: 'آرڈر پہنچائیں',
-                atStoreStatus: 'اسٹور پر',
-                enterCash: 'جمع کی گئی نقد رقم درج کریں (ریال):',
-                verifyComplete: 'تصدیق اور ترسیل مکمل کریں',
-                deliverySuccessful: 'ترسیل کامیاب!',
-                collected: 'جمع شدہ',
-                readyForNext: 'اگلے آرڈر کے لیے تیار',
-                bossLog: 'باس کا لاگ',
-                clear: 'صاف کریں',
-                connected: 'باس SMS گیٹ وے سے جڑا ہوا',
-                incorrectPin: 'غلط PIN۔ دوبارہ کوشش کریں',
-                cashMismatch: 'نقد رقم آرڈر سے مختلف ہے',
-                expectedAmount: 'متوقع',
-                collectedAmount: 'آپ نے جمع کی',
-                mediationQuestion: 'کیا کوئی رعایت ہے یا اشیاء غائب ہیں؟',
-                sendToBoss: 'باس کو نوٹ بھیجیں',
-                correctAmount: 'رقم درست کریں',
-                mediationSent: 'منظوری کے لیے باس کو نوٹ بھیجا گیا',
-                unlocked: 'ڈرائیور نے سیشن کامیابی سے ان لاک کیا',
-                newOrderBroadcast: 'نیا آرڈر نشر کیا گیا',
-                orderAccepted: 'ڈرائیور نے آرڈر قبول کیا',
-                arrivedAtStore: 'ڈرائیور اسٹور پر پہنچ گیا',
-                mediationRequested: 'ڈرائیور نے باس کی منظوری مانگی',
-                deliveryCompleted: 'ترسیل مکمل۔ نقد رقم جمع ہوئی'
-            },
-            bn: {
-                dir: 'ltr',
-                lang: 'বাংলা',
-                securityLock: 'নিরাপত্তা লক',
-                lockSubtitle: 'ড্রাইভার সেশন আনলক করতে PIN লিখুন (1234)',
-                simulateOrder: '+ নতুন অর্ডার দেখান',
-                criticalAlert: 'গুরুত্বপূর্ণ সতর্কতা',
-                newOrder: 'আপনার একটি নতুন অর্ডার আছে!',
-                distance: 'দূরত্ব',
-                price: 'মূল্য',
-                address: 'ডেলিভারি ঠিকানা: কিং ফাহদ রোড, ব্লক 4',
-                acceptOrder: 'অর্ডার গ্রহণ করুন',
-                activeDelivery: 'সক্রিয় ডেলিভারি',
-                accepted: 'গৃহীত',
-                timeRemaining: 'অবশিষ্ট সময়',
-                atStore: 'দোকানে (পৌঁছে গেছে)',
-                deliverOrder: 'অর্ডার ডেলিভার করুন',
-                atStoreStatus: 'দোকানে',
-                enterCash: 'সংগৃহীত নগদ লিখুন (রিয়াল):',
-                verifyComplete: 'যাচাই এবং ডেলিভারি সম্পন্ন করুন',
-                deliverySuccessful: 'ডেলিভারি সফল!',
-                collected: 'সংগৃহীত',
-                readyForNext: 'পরবর্তী অর্ডারের জন্য প্রস্তুত',
-                bossLog: 'বস লগ',
-                clear: 'মুছুন',
-                connected: 'বস SMS গেটওয়ে সাথে সংযুক্ত',
-                incorrectPin: 'ভুল PIN। আবার চেষ্টা করুন',
-                cashMismatch: 'নগদ অর্ডার থেকে আলাদা',
-                expectedAmount: 'প্রত্যাশিত',
-                collectedAmount: 'আপনি সংগ্রহ করেছেন',
-                mediationQuestion: 'কোনো ছাড় আছে বা আইটেম অনুপস্থিত?',
-                sendToBoss: 'বসকে নোট পাঠান',
-                correctAmount: 'পরিমাণ ঠিক করুন',
-                mediationSent: 'অনুমোদনের জন্য বসকে নোট পাঠানো হয়েছে',
-                unlocked: 'ড্রাইভার সফলভাবে সেশন আনলক করেছে',
-                newOrderBroadcast: 'নতুন অর্ডার সম্প্রচার করা হয়েছে',
-                orderAccepted: 'ড্রাইভার অর্ডার গ্রহণ করেছে',
-                arrivedAtStore: 'ড্রাইভার দোকানে পৌঁছেছে',
-                mediationRequested: 'ড্রাইভার বসের অনুমোদন চেয়েছে',
-                deliveryCompleted: 'ডেলিভারি সম্পন্ন। নগদ সংগৃহীত'
-            },
-            hi: {
-                dir: 'ltr',
-                lang: 'हिंदी',
-                securityLock: 'सुरक्षा लॉक',
-                lockSubtitle: 'ड्राइवर सत्र अनलॉक करने के लिए PIN दर्ज करें (1234)',
-                simulateOrder: '+ नया ऑर्डर दिखाएं',
-                criticalAlert: 'महत्वपूर्ण अलर्ट',
-                newOrder: 'आपके पास नया ऑर्डर है!',
-                distance: 'दूरी',
-                price: 'कीमत',
-                address: 'डिलीवरी पता: किंग फहद रोड, ब्लॉक 4',
-                acceptOrder: 'ऑर्डर स्वीकार करें',
-                activeDelivery: 'सक्रिय डिलीवरी',
-                accepted: 'स्वीकृत',
-                timeRemaining: 'शेष समय',
-                atStore: 'स्टोर पर (पहुँच गया)',
-                deliverOrder: 'ऑर्डर डिलीवर करें',
-                atStoreStatus: 'स्टोर पर',
-                enterCash: 'एकत्रित नकद दर्ज करें (रियाल):',
-                verifyComplete: 'सत्यापित करें और डिलीवरी पूरी करें',
-                deliverySuccessful: 'डिलीवरी सफल!',
-                collected: 'एकत्रित',
-                readyForNext: 'अगले ऑर्डर के लिए तैयार',
-                bossLog: 'बॉस लॉग',
-                clear: 'साफ़ करें',
-                connected: 'बॉस SMS गेटवे से जुड़ा',
-                incorrectPin: 'गलत PIN। पुनः प्रयास करें',
-                cashMismatch: 'नकद राशि ऑर्डर से अलग है',
-                expectedAmount: 'अपेक्षित',
-                collectedAmount: 'आपने एकत्रित किया',
-                mediationQuestion: 'कोई छूट है या आइटम गायब हैं?',
-                sendToBoss: 'बॉस को नोट भेजें',
-                correctAmount: 'राशि सुधारें',
-                mediationSent: 'अनुमोदन के लिए बॉस को नोट भेजा गया',
-                unlocked: 'ड्राइवर ने सत्र सफलतापूर्वक अनलॉक किया',
-                newOrderBroadcast: 'नया ऑर्डर प्रसारित किया गया',
-                orderAccepted: 'ड्राइवर ने ऑर्डर स्वीकार किया',
-                arrivedAtStore: 'ड्राइवर स्टोर पर पहुँचा',
-                mediationRequested: 'ड्राइवर ने बॉस की मंजूरी मांगी',
-                deliveryCompleted: 'डिलीवरी पूरी। नकद एकत्रित'
-            }
-        };
+        const SUPABASE_URL = 'https://hhljyqelqnsltmasxgqv.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_Xeo54iI9kxJ0n00f71A_yA_QNvmRC3H';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let currentLang = localStorage.getItem('appLanguage') || 'en';
-        
-        function applyLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('appLanguage', lang);
-            const t = translations[lang];
+        // ============================================
+        // إرسال الطلب للمندوب
+        // ============================================
+        async function sendOrderToDriver() {
+            const btn = document.getElementById('submitBtn');
+            const status = document.getElementById('statusMsg');
             
-            // Set direction
-            document.documentElement.lang = lang;
-            document.documentElement.dir = t.dir;
-            
-            // Update all translatable elements
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (t[key]) {
-                    el.textContent = t[key];
-                }
-            });
-            
-            // Update specific elements
-            document.getElementById('lockTitle').textContent = t.securityLock;
-            document.getElementById('lockSubtitle').textContent = t.lockSubtitle;
-            document.getElementById('langSelect').value = lang;
-        }
+            // جمع البيانات
+            const customerName = document.getElementById('custName').value.trim();
+            const customerPhone = document.getElementById('custPhone').value.trim();
+            const address = document.getElementById('custAddress').value.trim();
+            const price = parseFloat(document.getElementById('orderPrice').value);
+            const deliveryFee = parseFloat(document.getElementById('deliveryFee').value) || 10;
+            const notes = document.getElementById('orderNotes').value.trim();
 
-        function changeLanguage(lang) {
-            applyLanguage(lang);
-            if (navigator.vibrate) navigator.vibrate(50);
-        }
-
-        // ============================================
-        // AUDIO SYSTEM (Dopamine Chimes)
-        // ============================================
-        let audioCtx = null;
-        
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            // التحقق من البيانات
+            if (!customerName || !address || !price || price <= 0) {
+                showStatus('⚠️ يرجى ملء جميع الحقول المطلوبة بشكل صحيح', 'error');
+                return;
             }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        }
 
-        function playEarningChime() {
-            try {
-                initAudio();
-                const now = audioCtx.currentTime;
-                
-                // Pleasant two-tone chime (like cash register success)
-                const playTone = (freq, startTime, duration = 0.2) => {
-                    let osc = audioCtx.createOscillator();
-                    let gain = audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, startTime);
-                    gain.gain.setValueAtTime(0.3, startTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start(startTime);
-                    osc.stop(startTime + duration);
-                };
-                
-                // Rising tones = positive feeling
-                playTone(800, now, 0.15);
-                playTone(1000, now + 0.1, 0.15);
-                playTone(1200, now + 0.2, 0.2);
-                
-            } catch (e) {
-                console.log('Audio not available');
-            }
-        }
+            // تغيير حالة الزر
+            btn.innerHTML = '⏳ جاري الإرسال...';
+            btn.disabled = true;
+            btn.classList.remove('pulse-success');
 
-        function playSuccessChime() {
-            try {
-                initAudio();
-                const now = audioCtx.currentTime;
-                
-                // Triumphant completion sound
-                const playTone = (freq, startTime) => {
-                    let osc = audioCtx.createOscillator();
-                    let gain = audioCtx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, startTime);
-                    gain.gain.setValueAtTime(0.25, startTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start(startTime);
-                    osc.stop(startTime + 0.3);
-                };
-                
-                playTone(600, now);
-                playTone(800, now + 0.15);
-                playTone(1000, now + 0.3);
-                playTone(1200, now + 0.45);
-                
-            } catch (e) {
-                console.log('Audio not available');
-            }
-        }
+            // الإرسال إلى Supabase
+            const { data, error } = await supabaseClient
+                .from('orders')
+                .insert([
+                    { 
+                        customer_name: customerName,
+                        customer_phone: customerPhone || null,
+                        address: address, 
+                        price: price,
+                        delivery_fee: deliveryFee,
+                        notes: notes || null,
+                        status: 'pending',
+                        created_at: new Date().toISOString(),
+                        restaurant_id: getRestaurantId()
+                    }
+                ])
+                .select();
 
-        // ============================================
-        // PIN LOCK SYSTEM
-        // ============================================
-        let currentPin = "";
-        
-        function pressPin(num) {
-            if (currentPin.length < 4) {
-                currentPin += num;
-                updatePinDisplay();
-                if (navigator.vibrate) navigator.vibrate(30);
-            }
-        }
-
-        function clearPin() {
-            currentPin = "";
-            updatePinDisplay();
-            document.getElementById('pinError').classList.add('hidden');
-        }
-
-        function updatePinDisplay() {
-            let display = currentPin.padEnd(4, '_');
-            document.getElementById('pinDisplay').innerText = display;
-        }
-
-        function submitPin() {
-            const t = translations[currentLang];
-            if (currentPin === "1234") {
-                document.getElementById('lockScreen').classList.add('hidden');
-                logSMS(t.unlocked);
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            if (error) {
+                console.error('Error:', error);
+                showStatus('❌ فشل الإرسال، تأكد من اتصالك بالإنترنت', 'error');
+                btn.innerHTML = '🚀 إرسال الطلب للمندوب';
+                btn.disabled = false;
+                btn.classList.add('pulse-success');
             } else {
-                document.getElementById('pinError').classList.remove('hidden');
-                document.getElementById('pinError').textContent = t.incorrectPin;
-                currentPin = "";
-                updatePinDisplay();
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                showStatus('✅ تم إرسال الطلب بنجاح! المندوب سيستلم الإشعار الآن', 'success');
+                btn.innerHTML = '✅ تم الإرسال!';
+                btn.classList.replace('bg-emerald-600', 'bg-gray-800');
+                
+                // مسح الحقول
+                document.getElementById('custName').value = '';
+                document.getElementById('custPhone').value = '';
+                document.getElementById('custAddress').value = '';
+                document.getElementById('orderPrice').value = '';
+                document.getElementById('orderNotes').value = '';
+                
+                // تحديث قائمة الطلبات
+                setTimeout(() => {
+                    loadActiveOrders();
+                    btn.innerHTML = '🚀 إرسال الطلب للمندوب';
+                    btn.classList.replace('bg-gray-800', 'bg-emerald-600');
+                    btn.disabled = false;
+                    btn.classList.add('pulse-success');
+                }, 2000);
             }
         }
 
         // ============================================
-        // CLOCK SYSTEM
+        // تحميل الطلبات النشطة
         // ============================================
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('dateText').innerText = now.toLocaleDateString(currentLang);
-            document.getElementById('dayText').innerText = now.toLocaleDateString(currentLang, { weekday: 'long' });
-            document.getElementById('timeText').innerText = now.toLocaleTimeString(currentLang);
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        // ============================================
-        // ORDER WORKFLOW SYSTEM
-        // ============================================
-        let orderPrice = 50;
-        let countdownInterval = null;
-        let timeLeft = 30 * 60;
-
-        function triggerNewOrder() {
-            const t = translations[currentLang];
-            initAudio(); // Ensure audio context is ready
+        async function loadActiveOrders() {
+            const ordersList = document.getElementById('ordersList');
             
-            document.getElementById('orderAlertBox').classList.remove('hidden');
-            playEarningChime();
-            
-            // Haptic feedback - attention pattern
-            if (navigator.vibrate) {
-                navigator.vibrate([200, 100, 200, 100, 200]);
+            const { data: orders, error } = await supabaseClient
+                .from('orders')
+                .select('*')
+                .eq('restaurant_id', getRestaurantId())
+                .in('status', ['pending', 'accepted', 'at_store'])
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error loading orders:', error);
+                return;
             }
-            
-            logSMS(t.newOrderBroadcast);
-        }
 
-        function acceptOrder() {
-            const t = translations[currentLang];
-            document.getElementById('orderAlertBox').classList.add('hidden');
-            document.getElementById('activeOrderPanel').classList.remove('hidden');
-            logSMS(t.orderAccepted + ' #' + document.getElementById('orderId').textContent);
-            startCountdown();
-            
-            if (navigator.vibrate) navigator.vibrate(100);
-        }
-
-        function startCountdown() {
-            clearInterval(countdownInterval);
-            countdownInterval = setInterval(() => {
-                if (timeLeft <= 0) {
-                    clearInterval(countdownInterval);
-                    return;
-                }
-                timeLeft--;
-                let mins = Math.floor(timeLeft / 60);
-                let secs = timeLeft % 60;
-                document.getElementById('countdownTimer').innerText = 
-                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            }, 1000);
-        }
-
-        function markAtStore() {
-            const t = translations[currentLang];
-            const btnContainer = document.getElementById('workflowActions');
-            btnContainer.innerHTML = `
-                <button onclick="showCashInput()" class="w-full bg-cyberpunk-neonGreen/20 border border-cyberpunk-neonGreen text-cyberpunk-neonGreen font-bold py-3 rounded-xl active:scale-95 transition" data-i18n="deliverOrder">${t.deliverOrder}</button>
-            `;
-            document.getElementById('orderStatusBadge').innerText = t.atStoreStatus;
-            logSMS(t.arrivedAtStore + ' #' + document.getElementById('orderId').textContent);
-            
-            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-        }
-
-        function showCashInput() {
-            document.getElementById('workflowActions').classList.add('hidden');
-            document.getElementById('cashCollectionSection').classList.remove('hidden');
-        }
-
-        function confirmDelivery() {
-            const t = translations[currentLang];
-            let collected = parseFloat(document.getElementById('cashInput').value);
-            let mediationPanel = document.getElementById('cashMediationPanel');
-
-            if (isNaN(collected) || collected === 0) {
-                // Empty or zero - show error
-                mediationPanel.classList.remove('hidden');
-                mediationPanel.innerHTML = `
-                    <div class="bg-red-900/30 border border-red-600 p-3 rounded-xl text-center">
-                        <p class="text-red-400 text-sm font-bold">${t.enterCash}</p>
+            if (orders.length === 0) {
+                ordersList.innerHTML = `
+                    <div class="text-center text-gray-400 py-8">
+                        <div class="text-4xl mb-2">📭</div>
+                        <p>لا توجد طلبات نشطة</p>
                     </div>
                 `;
                 return;
             }
 
-            if (collected !== orderPrice) {
-                // Cash mismatch - show mediation panel
-                mediationPanel.classList.remove('hidden');
-                mediationPanel.innerHTML = `
-                    <div class="bg-yellow-900/30 border border-yellow-600 p-3 rounded-xl space-y-2">
-                        <p class="text-yellow-400 text-sm font-bold text-center">${t.cashMismatch}</p>
-                        <div class="flex justify-around text-xs">
-                            <div class="text-center">
-                                <div class="text-gray-400">${t.expectedAmount}</div>
-                                <div class="text-white font-bold">${orderPrice} SAR</div>
+            ordersList.innerHTML = orders.map(order => createOrderCard(order)).join('');
+            updateStats();
+        }
+
+        // ============================================
+        // إنشاء بطاقة الطلب
+        // ============================================
+        function createOrderCard(order) {
+            const statusText = {
+                'pending': 'في الانتظار',
+                'accepted': 'تم القبول',
+                'at_store': 'في المحل',
+                'delivered': 'تم التوصيل'
+            };
+            
+            const statusClass = {
+                'pending': 'status-pending',
+                'accepted': 'status-accepted',
+                'at_store': 'status-at-store',
+                'delivered': 'status-delivered'
+            };
+
+            const timeAgo = getTimeAgo(order.created_at);
+            
+            return `
+                <div class="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 animate-slide-in hover:border-emerald-500 transition">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-black text-gray-800">#${order.id}</span>
+                                <span class="status-badge ${statusClass[order.status]}">${statusText[order.status]}</span>
                             </div>
-                            <div class="text-center">
-                                <div class="text-gray-400">${t.collectedAmount}</div>
-                                <div class="text-cyberpunk-neonGreen font-bold">${collected} SAR</div>
-                            </div>
+                            <div class="text-sm text-gray-600 font-bold">${order.customer_name}</div>
                         </div>
-                        <p class="text-xs text-gray-300 text-center">${t.mediationQuestion}</p>
-                        <div class="space-y-2">
-                            <button onclick="sendNoteToBoss(${collected})" class="w-full bg-yellow-600 text-black font-bold py-2 rounded-lg text-sm">${t.sendToBoss}</button>
-                            <button onclick="correctAmount()" class="w-full bg-gray-700 text-white py-2 rounded-lg text-sm">${t.correctAmount}</button>
+                        <div class="text-left">
+                            <div class="text-2xl font-black text-emerald-600">${order.price} ر.س</div>
+                            <div class="text-xs text-gray-400">${timeAgo}</div>
                         </div>
                     </div>
-                `;
-                logSMS(t.mediationRequested + ': ' + collected + ' SAR');
-            } else {
-                // Perfect match - complete successfully
-                completeSuccess(collected);
-            }
-        }
-
-        function sendNoteToBoss(amount) {
-            const t = translations[currentLang];
-            // In production, this would send SMS to boss
-            logSMS('SMS to Boss: Driver collected ' + amount + ' SAR. Approval needed.');
-            alert(t.mediationSent);
-            completeSuccess(amount);
-        }
-
-        function correctAmount() {
-            document.getElementById('cashMediationPanel').classList.add('hidden');
-            document.getElementById('cashInput').value = '';
-            document.getElementById('cashInput').focus();
-        }
-
-        function completeSuccess(amount) {
-            const t = translations[currentLang];
-            document.getElementById('activeOrderPanel').classList.add('hidden');
-            document.getElementById('successReceipt').classList.remove('hidden');
-            document.getElementById('receiptAmount').innerText = amount;
-            
-            playSuccessChime();
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
-            
-            logSMS(t.deliveryCompleted + ': ' + amount + ' SAR');
-            
-            // Save to localStorage for offline sync
-            localStorage.setItem('lastDelivery', JSON.stringify({
-                orderId: document.getElementById('orderId').textContent,
-                amount: amount,
-                timestamp: new Date().toISOString()
-            }));
-        }
-
-        function resetApp() {
-            clearInterval(countdownInterval);
-            timeLeft = 30 * 60;
-            document.getElementById('successReceipt').classList.add('hidden');
-            document.getElementById('cashCollectionSection').classList.add('hidden');
-            document.getElementById('cashMediationPanel').classList.add('hidden');
-            document.getElementById('cashInput').value = '';
-            
-            // Reset workflow
-            const t = translations[currentLang];
-            document.getElementById('workflowActions').innerHTML = `
-                <button onclick="markAtStore()" class="w-full bg-cyberpunk-neonCyan/20 border border-cyberpunk-neonCyan text-cyberpunk-neonCyan font-bold py-3 rounded-xl active:scale-95 transition" data-i18n="atStore">${t.atStore}</button>
+                    <div class="text-xs text-gray-500 mb-2">
+                        📍 ${order.address}
+                    </div>
+                    ${order.driver_name ? `
+                        <div class="text-xs text-blue-600 font-bold mt-2">
+                            🚗 المندوب: ${order.driver_name}
+                        </div>
+                    ` : ''}
+                    ${order.notes ? `
+                        <div class="text-xs text-gray-500 mt-2 italic">
+                            💬 ${order.notes}
+                        </div>
+                    ` : ''}
+                </div>
             `;
-            document.getElementById('orderStatusBadge').innerText = t.accepted;
-            document.getElementById('countdownTimer').innerText = '30:00';
         }
 
         // ============================================
-        // SHARE & VIRAL SYSTEM
+        // تحديث الإحصائيات
+        // ============================================
+        async function updateStats() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // إجمالي طلبات اليوم
+            const { count: todayCount } = await supabaseClient
+                .from('orders')
+                .select('*', { count: 'exact', head: true })
+                .eq('restaurant_id', getRestaurantId())
+                .gte('created_at', today);
+
+            document.getElementById('todayTotal').textContent = todayCount || 0;
+
+            // الكاش المحصل اليوم
+            const { data: deliveredOrders } = await supabaseClient
+                .from('orders')
+                .select('price')
+                .eq('restaurant_id', getRestaurantId())
+                .eq('status', 'delivered')
+                .gte('created_at', today);
+
+            const totalCash = deliveredOrders ? deliveredOrders.reduce((sum, order) => sum + order.price, 0) : 0;
+            document.getElementById('cashCollected').textContent = totalCash.toLocaleString('ar-SA');
+        }
+
+        // ============================================
+        // تحديث الطلبات
+        // ============================================
+        function refreshOrders() {
+            loadActiveOrders();
+            showStatus('🔄 تم تحديث القائمة', 'info');
+        }
+
+        // ============================================
+        // مشاركة التطبيق
         // ============================================
         function shareApp() {
-            const t = translations[currentLang];
-            const appUrl = window.location.href;
-            let message = '';
-            
-            if (currentLang === 'ur') {
-                message = `میں CyberDelivery استعمال کر رہا ہوں - ڈرائیوروں کے لیے اسمارٹ ڈیلیوری سسٹم! ${appUrl}`;
-            } else if (currentLang === 'bn') {
-                message = `আমি CyberDelivery ব্যবহার করছি - ড্রাইভারদের জন্য স্মার্ট ডেলিভারি সিস্টেম! ${appUrl}`;
-            } else if (currentLang === 'hi') {
-                message = `मैं CyberDelivery का उपयोग कर रहा हूँ - ड्राइवरों के लिए स्मार्ट डिलीवरी सिस्टम! ${appUrl}`;
-            } else {
-                message = `I'm using CyberDelivery - Smart delivery system for drivers! ${appUrl}`;
-            }
-            
+            const appUrl = window.location.href.replace('restaurant', 'driver');
+            const message = `انضم إلى شبكة توصيل CyberDelivery - نظام ذكي لإدارة الطلبات والكاش! ${appUrl}`;
             const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
-            
-            if (navigator.vibrate) navigator.vibrate(50);
         }
 
         // ============================================
-        // BOSS LOG SYSTEM
+        // دوال مساعدة
         // ============================================
-        function logSMS(message) {
-            const container = document.getElementById('smsLogContainer');
-            const timestamp = new Date().toLocaleTimeString(currentLang, { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                second: '2-digit'
-            });
+        function showStatus(message, type) {
+            const status = document.getElementById('statusMsg');
+            status.classList.remove('hidden');
+            status.innerText = message;
             
-            const logEntry = document.createElement('div');
-            logEntry.className = 'text-gray-300 animate-slide-in';
-            logEntry.innerHTML = `<span class="text-cyberpunk-neonCyan">[${timestamp}]</span> ${message}`;
-            container.appendChild(logEntry);
-            container.scrollTop = container.scrollHeight;
-            
-            // Keep only last 20 logs
-            while (container.children.length > 20) {
-                container.removeChild(container.firstChild);
+            if (type === 'error') {
+                status.className = 'text-center p-3 rounded-xl text-sm font-bold mt-4 bg-red-100 text-red-700 border-2 border-red-300';
+            } else if (type === 'success') {
+                status.className = 'text-center p-3 rounded-xl text-sm font-bold mt-4 bg-emerald-100 text-emerald-800 border-2 border-emerald-300';
+            } else {
+                status.className = 'text-center p-3 rounded-xl text-sm font-bold mt-4 bg-blue-100 text-blue-700 border-2 border-blue-300';
             }
+            
+            setTimeout(() => {
+                status.classList.add('hidden');
+            }, 4000);
         }
 
-        function clearLog() {
-            const container = document.getElementById('smsLogContainer');
-            const t = translations[currentLang];
-            container.innerHTML = `<div class="text-gray-500">[System]: ${t.connected}</div>`;
+        function getRestaurantId() {
+            let id = localStorage.getItem('restaurantId');
+            if (!id) {
+                id = 'restaurant_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('restaurantId', id);
+            }
+            return id;
+        }
+
+        function getTimeAgo(timestamp) {
+            const now = new Date();
+            const then = new Date(timestamp);
+            const diff = Math.floor((now - then) / 1000);
+            
+            if (diff < 60) return 'الآن';
+            if (diff < 3600) return `منذ ${Math.floor(diff / 60)} دقيقة`;
+            if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} ساعة`;
+            return `منذ ${Math.floor(diff / 86400)} يوم`;
         }
 
         // ============================================
-        // INITIALIZATION
+        // التحديث التلقائي كل 10 ثواني
+        // ============================================
+        setInterval(loadActiveOrders, 10000);
+
+        // ============================================
+        // التهيئة عند تحميل الصفحة
         // ============================================
         window.addEventListener('DOMContentLoaded', () => {
-            applyLanguage(currentLang);
-            
-            // Enable audio on first interaction
-            document.addEventListener('click', initAudio, { once: true });
-            document.addEventListener('touchstart', initAudio, { once: true });
-            
-            // Request notification permission
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission();
-            }
+            loadActiveOrders();
+            getRestaurantId(); // إنشاء ID للمطعم
         });
-
-        // ============================================
-        // SERVICE WORKER (PWA Offline Support)
-        // ============================================
-        if ('serviceWorker' in navigator) {
-            const swCode = `
-                self.addEventListener('install', e => {
-                    self.skipWaiting();
-                });
-                
-                self.addEventListener('activate', e => {
-                    e.waitUntil(clients.claim());
-                });
-                
-                self.addEventListener('fetch', e => {
-                    e.respondWith(
-                        caches.match(e.request).then(r => {
-                            return r || fetch(e.request).then(response => {
-                                return caches.open('cyberdelivery-v1').then(cache => {
-                                    if (e.request.url.startsWith('http')) {
-                                        cache.put(e.request, response.clone());
-                                    }
-                                    return response;
-                                });
-                            });
-                        }).catch(() => {
-                            return new Response('<h1>Offline</h1>');
-                        })
-                    );
-                });
-            `;
-            
-            const blob = new Blob([swCode], { type: 'application/javascript' });
-            const swUrl = URL.createObjectURL(blob);
-            
-            navigator.serviceWorker.register(swUrl).catch(err => {
-                console.log('Service worker registration failed:', err);
-            });
-        }
     </script>
 </body>
 </html>
