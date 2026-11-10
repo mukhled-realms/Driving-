@@ -1,423 +1,656 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberDelivery | لوحة المطعم - إرسال وتتبع الطلبات</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>
-        body { 
-            font-family: 'Tajawal', sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-        
-        .animate-slide-in { animation: slideIn 0.3s ease-out; }
-        .pulse-success { animation: pulse-ring 2s infinite; }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-        
-        .status-pending { background: #fef3c7; color: #92400e; }
-        .status-accepted { background: #dbeafe; color: #1e40af; }
-        .status-at-store { background: #fce7f3; color: #9f1239; }
-        .status-delivered { background: #d1fae5; color: #065f46; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CyberDelivery | لوحة المطعم</title>
+<meta name="theme-color" content="#05050a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect fill='%2305050a' width='512' height='512' rx='64'/%3E%3Ctext x='256' y='300' font-size='180' text-anchor='middle' fill='%2300ff66' font-family='Arial' font-weight='bold'%3E🚀%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Bengali:wght@400;700&family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { font-family: 'Tajawal', sans-serif; box-sizing: border-box; }
+[lang="ar"] { font-family: 'Tajawal', sans-serif; }
+[lang="en"] { font-family: 'Tajawal', sans-serif; }
+[lang="ur"] { font-family: 'Noto Nastaliq Urdu', serif; line-height: 2.2; }
+[lang="bn"] { font-family: 'Noto Sans Bengali', sans-serif; }
+[lang="hi"] { font-family: 'Noto Sans Devanagari', sans-serif; }
+body { background: linear-gradient(135deg, #05050a 0%, #0b0f19 50%, #1a0f2e 100%); min-height: 100vh; color: #e5e7eb; }
+.neon-cyan { color: #00f0ff; text-shadow: 0 0 10px rgba(0,240,255,0.5); }
+.neon-green { color: #00ff66; text-shadow: 0 0 10px rgba(0,255,102,0.5); }
+.neon-pink { color: #ff0055; text-shadow: 0 0 10px rgba(255,0,85,0.5); }
+.glow-cyan { box-shadow: 0 0 20px rgba(0,240,255,0.25); }
+.glow-green { box-shadow: 0 0 20px rgba(0,255,102,0.25); }
+.glow-pink { box-shadow: 0 0 20px rgba(255,0,85,0.25); }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.slide-up { animation: slideUp 0.4s ease-out; }
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(0,255,102,0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(0,255,102,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,255,102,0); }
+}
+.pulse-success { animation: pulse-ring 2s infinite; }
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer { background: linear-gradient(90deg, #0b0f19 25%, #1a1f2e 50%, #0b0f19 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.status-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+.status-pending { background: rgba(255,204,0,0.2); color: #ffcc00; border: 1px solid #ffcc00; }
+.status-accepted { background: rgba(0,240,255,0.2); color: #00f0ff; border: 1px solid #00f0ff; }
+.status-at_store { background: rgba(168,85,247,0.2); color: #a855f7; border: 1px solid #a855f7; }
+.status-picked_up { background: rgba(236,72,153,0.2); color: #ec4899; border: 1px solid #ec4899; }
+.status-in_transit { background: rgba(59,130,246,0.2); color: #3b82f6; border: 1px solid #3b82f6; }
+.status-delivered { background: rgba(0,255,102,0.2); color: #00ff66; border: 1px solid #00ff66; }
+.status-cancelled { background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid #ef4444; }
+.card { background: rgba(11,15,25,0.85); backdrop-filter: blur(10px); border: 1px solid rgba(0,240,255,0.2); border-radius: 20px; }
+.btn-primary { background: linear-gradient(135deg, #00f0ff 0%, #00ff66 100%); color: #05050a; font-weight: 900; transition: all 0.2s; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,240,255,0.4); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.input-field { background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.1); color: #fff; border-radius: 14px; padding: 14px; width: 100%; transition: all 0.2s; }
+.input-field:focus { border-color: #00f0ff; outline: none; box-shadow: 0 0 0 3px rgba(0,240,255,0.2); }
+.input-field::placeholder { color: rgba(255,255,255,0.3); }
+.lang-btn { padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s; cursor: pointer; }
+.lang-btn.active { background: rgba(0,240,255,0.2); border-color: #00f0ff; color: #00f0ff; }
+.lang-btn:hover { background: rgba(255,255,255,0.1); }
+#map { height: 220px; border-radius: 16px; z-index: 1; }
+.tracking-code { font-family: 'Courier New', monospace; font-size: 22px; font-weight: 900; letter-spacing: 3px; color: #00ff66; background: rgba(0,255,102,0.1); padding: 12px 20px; border-radius: 12px; border: 2px dashed #00ff66; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 14px 24px; border-radius: 14px; font-weight: 700; z-index: 1000; animation: slideUp 0.3s ease-out; }
+.toast-success { background: #00ff66; color: #05050a; }
+.toast-error { background: #ff0055; color: #fff; }
+.toast-info { background: #00f0ff; color: #05050a; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0b0f19; }
+::-webkit-scrollbar-thumb { background: #00f0ff; border-radius: 3px; }
+</style>
 </head>
-<body class="p-4">
+<body>
 
-    <!-- Header -->
-    <div class="max-w-4xl mx-auto">
-        <div class="text-center mb-8 text-white">
-            <div class="inline-block bg-white/10 backdrop-blur-sm rounded-2xl px-6 py-3 mb-4">
-                <h1 class="text-4xl font-black mb-2">🏪 لوحة المطعم</h1>
-                <p class="text-white/90">أرسل طلباتك وتتبع المندوبين مباشرة</p>
-            </div>
+<div id="app" class="max-w-5xl mx-auto p-4 space-y-4">
+
+  <header class="card p-5 glow-cyan">
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-black neon-cyan" data-i18n="appTitle">🏪 لوحة المطعم</h1>
+        <p class="text-xs text-gray-400 mt-1" data-i18n="appSubtitle">نظام توصيل ذكي — الرياض</p>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex gap-1">
+          <button onclick="setLang('ar')" class="lang-btn" data-lang="ar">🇸🇦 عربي</button>
+          <button onclick="setLang('en')" class="lang-btn" data-lang="en">🇬🇧 EN</button>
+          <button onclick="setLang('ur')" class="lang-btn" data-lang="ur">🇵🇰 اردو</button>
+          <button onclick="setLang('bn')" class="lang-btn" data-lang="bn">🇧🇩 বাংলা</button>
+          <button onclick="setLang('hi')" class="lang-btn" data-lang="hi">🇮🇳 हिंदी</button>
         </div>
+        <a href="admin.html" class="px-3 py-2 rounded-xl bg-pink-500/20 border border-pink-500 text-pink-400 text-xs font-bold hover:bg-pink-500/30 transition">🛡️ <span data-i18n="admin">الإدارة</span></a>
+      </div>
+    </div>
+  </header>
 
-        <!-- Main Grid -->
-        <div class="grid md:grid-cols-2 gap-6">
-            
-            <!-- LEFT: Order Form -->
-            <div class="bg-white rounded-3xl shadow-2xl border border-white/20 p-6 backdrop-blur-sm">
-                <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center gap-2">
-                    <span class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">📦</span>
-                    إرسال طلب جديد
-                </h2>
-                
-                <div class="space-y-4">
-                    <!-- Customer Name -->
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">اسم العميل / رقم الطلب</label>
-                        <input type="text" id="custName" placeholder="مثال: طلب رقم 1234" class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition">
-                    </div>
+  <div class="grid lg:grid-cols-2 gap-4">
 
-                    <!-- Phone -->
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">رقم الجوال (اختياري)</label>
-                        <input type="tel" id="custPhone" placeholder="05xxxxxxxx" class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition">
-                    </div>
+    <div class="card p-5 space-y-4">
+      <h2 class="text-xl font-black neon-green flex items-center gap-2">
+        <span class="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">📦</span>
+        <span data-i18n="newOrder">طلب جديد</span>
+      </h2>
 
-                    <!-- Address -->
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">عنوان التوصيل التفصيلي</label>
-                        <textarea id="custAddress" rows="2" placeholder="الحي، الشارع، رقم المبنى، علامة مميزة..." class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition resize-none"></textarea>
-                    </div>
+      <div>
+        <label class="text-xs font-bold text-gray-400 mb-2 block" data-i18n="selectRestaurant">اختر المطعم / الفرع</label>
+        <select id="restaurantSelect" class="input-field" onchange="onRestaurantChange()">
+          <option value="" data-i18n="loading">جاري التحميل...</option>
+        </select>
+      </div>
 
-                    <!-- Price -->
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">قيمة الطلب (بالريال)</label>
-                        <input type="number" id="orderPrice" placeholder="50" class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl text-2xl font-black text-emerald-600 focus:outline-none focus:border-emerald-500 focus:bg-white transition">
-                    </div>
-
-                    <!-- Delivery Fee -->
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">رسوم التوصيل (بالريال)</label>
-                        <input type="number" id="deliveryFee" value="10" class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition">
-                    </div>
-
-                    <!-- Notes -->
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">ملاحظات (اختياري)</label>
-                        <input type="text" id="orderNotes" placeholder="مثال: الدور الثالث، اتصل قبل الوصول" class="w-full bg-gray-50 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition">
-                    </div>
-
-                    <!-- Submit Button -->
-                    <button onclick="sendOrderToDriver()" id="submitBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg py-4 rounded-xl shadow-lg shadow-emerald-200 transition active:scale-95 mt-4 pulse-success">
-                        🚀 إرسال الطلب للمندوب
-                    </button>
-
-                    <!-- Status Message -->
-                    <div id="statusMsg" class="hidden text-center p-3 rounded-xl text-sm font-bold mt-4"></div>
-                </div>
-            </div>
-
-            <!-- RIGHT: Live Orders & Stats -->
-            <div class="space-y-6">
-                
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white rounded-2xl shadow-xl p-4 border border-white/20">
-                        <div class="text-gray-500 text-sm mb-1">إجمالي اليوم</div>
-                        <div class="text-2xl font-black text-gray-800" id="todayTotal">0</div>
-                        <div class="text-xs text-gray-400 mt-1">طلب</div>
-                    </div>
-                    <div class="bg-white rounded-2xl shadow-xl p-4 border border-white/20">
-                        <div class="text-gray-500 text-sm mb-1">الكاش المحصل</div>
-                        <div class="text-2xl font-black text-emerald-600" id="cashCollected">0</div>
-                        <div class="text-xs text-gray-400 mt-1">ريال</div>
-                    </div>
-                </div>
-
-                <!-- Active Orders List -->
-                <div class="bg-white rounded-3xl shadow-2xl border border-white/20 p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-black text-gray-800 flex items-center gap-2">
-                            <span class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">📋</span>
-                            الطلبات النشطة
-                        </h2>
-                        <button onclick="refreshOrders()" class="text-sm text-blue-600 hover:text-blue-700 font-bold">
-                            🔄 تحديث
-                        </button>
-                    </div>
-                    
-                    <div id="ordersList" class="space-y-3 max-h-96 overflow-y-auto">
-                        <div class="text-center text-gray-400 py-8">
-                            <div class="text-4xl mb-2">📭</div>
-                            <p>لا توجد طلبات نشطة</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Invite Driver Button -->
-                <button onclick="shareApp()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-lg py-4 rounded-xl shadow-lg transition active:scale-95 hover:from-purple-500 hover:to-pink-500">
-                    🤝 ادعُ مندوباً جديداً للشبكة
-                </button>
-            </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-bold text-gray-400 mb-2 block" data-i18n="customerName">اسم العميل *</label>
+          <input type="text" id="custName" class="input-field" placeholder="">
         </div>
+        <div>
+          <label class="text-xs font-bold text-gray-400 mb-2 block" data-i18n="customerPhone">رقم الجوال</label>
+          <input type="tel" id="custPhone" class="input-field" placeholder="05xxxxxxxx">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-gray-400 mb-2 block" data-i18n="address">عنوان التوصيل *</label>
+        <div class="relative">
+          <input type="text" id="custAddress" class="input-field pr-10" placeholder="" oninput="onAddressInput()">
+          <button onclick="geocodeAddress()" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500 text-cyan-400 flex items-center justify-center hover:bg-cyan-500/30 transition" title="تحديد من الخريطة">📍</button>
+        </div>
+        <div id="geocodeStatus" class="text-[10px] mt-1 text-gray-500"></div>
+      </div>
+
+      <div id="mapContainer" class="hidden">
+        <div id="map"></div>
+        <button onclick="useMapLocation()" class="w-full mt-2 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500 text-cyan-400 text-xs font-bold" data-i18n="useThisLocation">استخدم هذا الموقع</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-bold text-gray-400 mb-2 block" data-i18n="orderPrice">قيمة الطلب (ر.س) *</label>
+          <input type="number" id="orderPrice" class="input-field text-2xl font-black neon-green" placeholder="0" min="0" step="0.01">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-400 mb-2 block" data-i18n="deliveryFee">رسوم التوصيل</label>
+          <input type="number" id="deliveryFee" class="input-field" placeholder="10" min="0" step="0.01" value="10">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-gray-400 mb-2 block" data-i18n="notes">ملاحظات (اختياري)</label>
+        <textarea id="orderNotes" class="input-field" rows="2" placeholder=""></textarea>
+      </div>
+
+      <div id="totalDisplay" class="hidden bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-500/30 rounded-xl p-3 text-center">
+        <div class="text-xs text-gray-400" data-i18n="total">الإجمالي</div>
+        <div class="text-3xl font-black neon-green"><span id="totalAmount">0</span> <span data-i18n="currency">ر.س</span></div>
+      </div>
+
+      <button id="submitBtn" onclick="submitOrder()" class="btn-primary w-full py-4 rounded-xl text-lg pulse-success" disabled>
+        <span data-i18n="sendOrder">🚀 إرسال الطلب للمندوب</span>
+      </button>
+
+      <div id="statusMsg"></div>
     </div>
 
-    <script>
-        // ============================================
-        // إعداد الاتصال بقاعدة البيانات
-        // ============================================
-        const SUPABASE_URL = 'https://hhljyqelqnsltmasxgqv.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_Xeo54iI9kxJ0n00f71A_yA_QNvmRC3H';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <div class="space-y-4">
 
-        // ============================================
-        // إرسال الطلب للمندوب
-        // ============================================
-        async function sendOrderToDriver() {
-            const btn = document.getElementById('submitBtn');
-            const status = document.getElementById('statusMsg');
-            
-            // جمع البيانات
-            const customerName = document.getElementById('custName').value.trim();
-            const customerPhone = document.getElementById('custPhone').value.trim();
-            const address = document.getElementById('custAddress').value.trim();
-            const price = parseFloat(document.getElementById('orderPrice').value);
-            const deliveryFee = parseFloat(document.getElementById('deliveryFee').value) || 10;
-            const notes = document.getElementById('orderNotes').value.trim();
+      <div class="card p-5">
+        <h2 class="text-xl font-black neon-pink flex items-center gap-2 mb-4">
+          <span class="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center">📊</span>
+          <span data-i18n="todayStats">إحصائيات اليوم</span>
+        </h2>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-black/30 rounded-xl p-3 text-center border border-green-500/20">
+            <div class="text-2xl font-black neon-green" id="statTotal">0</div>
+            <div class="text-[10px] text-gray-400" data-i18n="totalOrders">طلب</div>
+          </div>
+          <div class="bg-black/30 rounded-xl p-3 text-center border border-cyan-500/20">
+            <div class="text-2xl font-black neon-cyan" id="statPending">0</div>
+            <div class="text-[10px] text-gray-400" data-i18n="pending">معلق</div>
+          </div>
+          <div class="bg-black/30 rounded-xl p-3 text-center border border-yellow-500/20">
+            <div class="text-2xl font-black text-yellow-400" id="statCash">0</div>
+            <div class="text-[10px] text-gray-400" data-i18n="cashCollected">كاش محصل</div>
+          </div>
+        </div>
+      </div>
 
-            // التحقق من البيانات
-            if (!customerName || !address || !price || price <= 0) {
-                showStatus('⚠️ يرجى ملء جميع الحقول المطلوبة بشكل صحيح', 'error');
-                return;
-            }
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-black neon-cyan flex items-center gap-2">
+            <span class="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">📋</span>
+            <span data-i18n="activeOrders">الطلبات النشطة</span>
+          </h2>
+          <button onclick="loadOrders()" class="px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500 text-cyan-400 text-xs font-bold hover:bg-cyan-500/30 transition">🔄 <span data-i18n="refresh">تحديث</span></button>
+        </div>
+        <div id="ordersList" class="space-y-2 max-h-[500px] overflow-y-auto">
+          <div class="text-center text-gray-500 py-8">
+            <div class="text-4xl mb-2">📭</div>
+            <p class="text-sm" data-i18n="noOrders">لا توجد طلبات</p>
+          </div>
+        </div>
+      </div>
 
-            // تغيير حالة الزر
-            btn.innerHTML = '⏳ جاري الإرسال...';
-            btn.disabled = true;
-            btn.classList.remove('pulse-success');
+    </div>
+  </div>
 
-            // الإرسال إلى Supabase
-            const { data, error } = await supabaseClient
-                .from('orders')
-                .insert([
-                    { 
-                        customer_name: customerName,
-                        customer_phone: customerPhone || null,
-                        address: address, 
-                        price: price,
-                        delivery_fee: deliveryFee,
-                        notes: notes || null,
-                        status: 'pending',
-                        created_at: new Date().toISOString(),
-                        restaurant_id: getRestaurantId()
-                    }
-                ])
-                .select();
+</div>
 
-            if (error) {
-                console.error('Error:', error);
-                showStatus('❌ فشل الإرسال، تأكد من اتصالك بالإنترنت', 'error');
-                btn.innerHTML = '🚀 إرسال الطلب للمندوب';
-                btn.disabled = false;
-                btn.classList.add('pulse-success');
-            } else {
-                showStatus('✅ تم إرسال الطلب بنجاح! المندوب سيستلم الإشعار الآن', 'success');
-                btn.innerHTML = '✅ تم الإرسال!';
-                btn.classList.replace('bg-emerald-600', 'bg-gray-800');
-                
-                // مسح الحقول
-                document.getElementById('custName').value = '';
-                document.getElementById('custPhone').value = '';
-                document.getElementById('custAddress').value = '';
-                document.getElementById('orderPrice').value = '';
-                document.getElementById('orderNotes').value = '';
-                
-                // تحديث قائمة الطلبات
-                setTimeout(() => {
-                    loadActiveOrders();
-                    btn.innerHTML = '🚀 إرسال الطلب للمندوب';
-                    btn.classList.replace('bg-gray-800', 'bg-emerald-600');
-                    btn.disabled = false;
-                    btn.classList.add('pulse-success');
-                }, 2000);
-            }
-        }
+<div id="trackingModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="card p-6 w-full max-w-md slide-up border-2 border-green-500/50 glow-green">
+    <div class="text-center">
+      <div class="text-6xl mb-3">✅</div>
+      <h3 class="text-2xl font-black neon-green mb-2" data-i18n="orderCreated">تم إنشاء الطلب!</h3>
+      <p class="text-sm text-gray-400 mb-4" data-i18n="shareTracking">شارك رمز التتبع مع العميل</p>
+      
+      <div class="mb-4">
+        <div class="text-xs text-gray-400 mb-2" data-i18n="trackingCode">رمز التتبع</div>
+        <div class="tracking-code" id="trackingCodeDisplay">CD-XXXXXXXX</div>
+      </div>
 
-        // ============================================
-        // تحميل الطلبات النشطة
-        // ============================================
-        async function loadActiveOrders() {
-            const ordersList = document.getElementById('ordersList');
-            
-            const { data: orders, error } = await supabaseClient
-                .from('orders')
-                .select('*')
-                .eq('restaurant_id', getRestaurantId())
-                .in('status', ['pending', 'accepted', 'at_store'])
-                .order('created_at', { ascending: false });
+      <div class="flex gap-2 mb-4">
+        <button onclick="copyTrackingCode()" class="flex-1 py-3 rounded-xl bg-cyan-500/20 border border-cyan-500 text-cyan-400 font-bold hover:bg-cyan-500/30 transition">📋 <span data-i18n="copy">نسخ</span></button>
+        <button onclick="shareTracking()" class="flex-1 py-3 rounded-xl bg-green-500/20 border border-green-500 text-green-400 font-bold hover:bg-green-500/30 transition">📤 <span data-i18n="share">مشاركة</span></button>
+      </div>
 
-            if (error) {
-                console.error('Error loading orders:', error);
-                return;
-            }
+      <div class="bg-black/30 rounded-xl p-3 mb-4 text-xs text-gray-400">
+        <div data-i18n="customerCanTrack">يمكن للعميل تتبع الطلب عبر:</div>
+        <div class="font-mono text-cyan-400 mt-1 break-all" id="trackingUrl"></div>
+      </div>
 
-            if (orders.length === 0) {
-                ordersList.innerHTML = `
-                    <div class="text-center text-gray-400 py-8">
-                        <div class="text-4xl mb-2">📭</div>
-                        <p>لا توجد طلبات نشطة</p>
-                    </div>
-                `;
-                return;
-            }
+      <button onclick="closeTrackingModal()" class="w-full py-3 rounded-xl bg-gray-700 text-white font-bold hover:bg-gray-600 transition" data-i18n="close">إغلاق</button>
+    </div>
+  </div>
+</div>
 
-            ordersList.innerHTML = orders.map(order => createOrderCard(order)).join('');
-            updateStats();
-        }
+<div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] space-y-2"></div>
 
-        // ============================================
-        // إنشاء بطاقة الطلب
-        // ============================================
-        function createOrderCard(order) {
-            const statusText = {
-                'pending': 'في الانتظار',
-                'accepted': 'تم القبول',
-                'at_store': 'في المحل',
-                'delivered': 'تم التوصيل'
-            };
-            
-            const statusClass = {
-                'pending': 'status-pending',
-                'accepted': 'status-accepted',
-                'at_store': 'status-at-store',
-                'delivered': 'status-delivered'
-            };
+<script>
+const SUPABASE_URL = 'https://hhljyqelqnsltmasxgqv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Xeo54iI9kxJ0n00f71A_yA_QNvmRC3H';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            const timeAgo = getTimeAgo(order.created_at);
-            
-            return `
-                <div class="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 animate-slide-in hover:border-emerald-500 transition">
-                    <div class="flex items-start justify-between mb-2">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="font-black text-gray-800">#${order.id}</span>
-                                <span class="status-badge ${statusClass[order.status]}">${statusText[order.status]}</span>
-                            </div>
-                            <div class="text-sm text-gray-600 font-bold">${order.customer_name}</div>
-                        </div>
-                        <div class="text-left">
-                            <div class="text-2xl font-black text-emerald-600">${order.price} ر.س</div>
-                            <div class="text-xs text-gray-400">${timeAgo}</div>
-                        </div>
-                    </div>
-                    <div class="text-xs text-gray-500 mb-2">
-                        📍 ${order.address}
-                    </div>
-                    ${order.driver_name ? `
-                        <div class="text-xs text-blue-600 font-bold mt-2">
-                            🚗 المندوب: ${order.driver_name}
-                        </div>
-                    ` : ''}
-                    ${order.notes ? `
-                        <div class="text-xs text-gray-500 mt-2 italic">
-                            💬 ${order.notes}
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        }
+const I18N = {
+  ar: {
+    appTitle: '🏪 لوحة المطعم', appSubtitle: 'نظام توصيل ذكي — الرياض', admin: 'الإدارة',
+    newOrder: 'طلب جديد', selectRestaurant: 'اختر المطعم / الفرع', loading: 'جاري التحميل...',
+    customerName: 'اسم العميل *', customerPhone: 'رقم الجوال', address: 'عنوان التوصيل *',
+    useThisLocation: 'استخدم هذا الموقع', orderPrice: 'قيمة الطلب (ر.س) *', deliveryFee: 'رسوم التوصيل',
+    notes: 'ملاحظات (اختياري)', total: 'الإجمالي', currency: 'ر.س',
+    sendOrder: '🚀 إرسال الطلب للمندوب', todayStats: 'إحصائيات اليوم',
+    totalOrders: 'طلب', pending: 'معلق', cashCollected: 'كاش محصل',
+    activeOrders: 'الطلبات النشطة', refresh: 'تحديث', noOrders: 'لا توجد طلبات',
+    orderCreated: 'تم إنشاء الطلب!', shareTracking: 'شارك رمز التتبع مع العميل',
+    trackingCode: 'رمز التتبع', copy: 'نسخ', share: 'مشاركة',
+    customerCanTrack: 'يمكن للعميل تتبع الطلب عبر:', close: 'إغلاق',
+    fillRequired: '⚠️ يرجى ملء الحقول المطلوبة', sending: '⏳ جاري الإرسال...',
+    success: '✅ تم إرسال الطلب بنجاح', error: '❌ حدث خطأ',
+    copied: '📋 تم النسخ', geocoding: '🔍 جاري البحث عن الموقع...',
+    geocodeSuccess: '✅ تم تحديد الموقع', geocodeFail: '❌ لم يتم العثور على الموقع',
+    selectRestaurantFirst: '⚠️ اختر المطعم أولاً', priceInvalid: '⚠️ المبلغ غير صحيح',
+    orderStatus: { pending: 'معلق', accepted: 'مقبول', at_store: 'في المحل', picked_up: 'تم الاستلام', in_transit: 'في الطريق', delivered: 'تم التوصيل', cancelled: 'ملغي' },
+    driver: 'المندوب', amount: 'المبلغ', time: 'الوقت', now: 'الآن', minAgo: 'د'
+  },
+  en: {
+    appTitle: '🏪 Restaurant Dashboard', appSubtitle: 'Smart Delivery System — Riyadh', admin: 'Admin',
+    newOrder: 'New Order', selectRestaurant: 'Select Restaurant / Branch', loading: 'Loading...',
+    customerName: 'Customer Name *', customerPhone: 'Phone Number', address: 'Delivery Address *',
+    useThisLocation: 'Use This Location', orderPrice: 'Order Amount (SAR) *', deliveryFee: 'Delivery Fee',
+    notes: 'Notes (optional)', total: 'Total', currency: 'SAR',
+    sendOrder: '🚀 Send Order to Driver', todayStats: "Today's Stats",
+    totalOrders: 'Orders', pending: 'Pending', cashCollected: 'Cash Collected',
+    activeOrders: 'Active Orders', refresh: 'Refresh', noOrders: 'No orders yet',
+    orderCreated: 'Order Created!', shareTracking: 'Share tracking code with customer',
+    trackingCode: 'Tracking Code', copy: 'Copy', share: 'Share',
+    customerCanTrack: 'Customer can track via:', close: 'Close',
+    fillRequired: '⚠️ Please fill required fields', sending: '⏳ Sending...',
+    success: '✅ Order sent successfully', error: '❌ Error occurred',
+    copied: '📋 Copied', geocoding: '🔍 Searching location...',
+    geocodeSuccess: '✅ Location found', geocodeFail: '❌ Location not found',
+    selectRestaurantFirst: '⚠️ Select restaurant first', priceInvalid: '⚠️ Invalid amount',
+    orderStatus: { pending: 'Pending', accepted: 'Accepted', at_store: 'At Store', picked_up: 'Picked Up', in_transit: 'In Transit', delivered: 'Delivered', cancelled: 'Cancelled' },
+    driver: 'Driver', amount: 'Amount', time: 'Time', now: 'Now', minAgo: 'm'
+  },
+  ur: {
+    appTitle: '🏪 ریسٹورنٹ ڈیش بورڈ', appSubtitle: 'سمارٹ ڈیلیوری سسٹم — ریاض', admin: 'ایڈمن',
+    newOrder: 'نیا آرڈر', selectRestaurant: 'ریسٹورنٹ منتخب کریں', loading: 'لوڈ ہو رہا ہے...',
+    customerName: 'گاہک کا نام *', customerPhone: 'فون نمبر', address: 'پتہ *',
+    useThisLocation: 'یہ مقام استعمال کریں', orderPrice: 'رقم (ریال) *', deliveryFee: 'ڈیلیوری فیس',
+    notes: 'نوٹس', total: 'کل', currency: 'ریال',
+    sendOrder: '🚀 آرڈر بھیجیں', todayStats: 'آج کے اعداد و شمار',
+    totalOrders: 'آرڈر', pending: 'زیر التواء', cashCollected: 'نقد رقم',
+    activeOrders: 'فعال آرڈرز', refresh: 'ریفریش', noOrders: 'کوئی آرڈر نہیں',
+    orderCreated: 'آرڈر بن گیا!', shareTracking: 'ٹریکنگ کوڈ شیئر کریں',
+    trackingCode: 'ٹریکنگ کوڈ', copy: 'کاپی', share: 'شیئر',
+    customerCanTrack: 'گاہک ٹریک کر سکتا ہے:', close: 'بند کریں',
+    fillRequired: '⚠️ ضروری خانے پُر کریں', sending: '⏳ بھیج رہے ہیں...',
+    success: '✅ بھیج دیا گیا', error: '❌ خرابی',
+    copied: '📋 کاپی ہو گیا', geocoding: '🔍 تلاش...',
+    geocodeSuccess: '✅ مل گیا', geocodeFail: '❌ نہیں ملا',
+    selectRestaurantFirst: '⚠️ ریسٹورنٹ منتخب کریں', priceInvalid: '⚠️ غلط رقم',
+    orderStatus: { pending: 'زیر التواء', accepted: 'قبول', at_store: 'دکان پر', picked_up: 'اٹھا لیا', in_transit: 'راستے میں', delivered: 'پہنچا دیا', cancelled: 'منسوخ' },
+    driver: 'ڈرائیور', amount: 'رقم', time: 'وقت', now: 'ابھی', minAgo: 'م'
+  },
+  bn: {
+    appTitle: '🏪 রেস্তোরাঁ ড্যাশবোর্ড', appSubtitle: 'স্মার্ট ডেলিভারি — রিয়াদ', admin: 'অ্যাডমিন',
+    newOrder: 'নতুন অর্ডার', selectRestaurant: 'রেস্তোরাঁ নির্বাচন', loading: 'লোড হচ্ছে...',
+    customerName: 'গ্রাহকের নাম *', customerPhone: 'ফোন', address: 'ঠিকানা *',
+    useThisLocation: 'এই অবস্থান ব্যবহার', orderPrice: 'মূল্য (রিয়াল) *', deliveryFee: 'ডেলিভারি ফি',
+    notes: 'নোট', total: 'মোট', currency: 'রিয়াল',
+    sendOrder: '🚀 অর্ডার পাঠান', todayStats: 'আজকের পরিসংখ্যান',
+    totalOrders: 'অর্ডার', pending: 'অপেক্ষমাণ', cashCollected: 'নগদ',
+    activeOrders: 'সক্রিয় অর্ডার', refresh: 'রিফ্রেশ', noOrders: 'কোন অর্ডার নেই',
+    orderCreated: 'অর্ডার তৈরি!', shareTracking: 'ট্র্যাকিং কোড শেয়ার',
+    trackingCode: 'ট্র্যাকিং কোড', copy: 'কপি', share: 'শেয়ার',
+    customerCanTrack: 'গ্রাহক ট্র্যাক করতে পারবে:', close: 'বন্ধ',
+    fillRequired: '⚠️ প্রয়োজনীয় ঘর পূরণ', sending: '⏳ পাঠানো হচ্ছে...',
+    success: '✅ পাঠানো হয়েছে', error: '❌ ত্রুটি',
+    copied: '📋 কপি', geocoding: '🔍 খোঁজা...',
+    geocodeSuccess: '✅ পাওয়া গেছে', geocodeFail: '❌ পাওয়া যায়নি',
+    selectRestaurantFirst: '⚠️ রেস্তোরাঁ নির্বাচন', priceInvalid: '⚠️ ভুল পরিমাণ',
+    orderStatus: { pending: 'অপেক্ষমাণ', accepted: 'গৃহীত', at_store: 'দোকানে', picked_up: 'নেওয়া', in_transit: 'পথে', delivered: 'পৌঁছে', cancelled: 'বাতিল' },
+    driver: 'ড্রাইভার', amount: 'পরিমাণ', time: 'সময়', now: 'এখন', minAgo: 'মি'
+  },
+  hi: {
+    appTitle: '🏪 रेस्तरां डैशबोर्ड', appSubtitle: 'स्मार्ट डिलीवरी — रियाद', admin: 'एडमिन',
+    newOrder: 'नया ऑर्डर', selectRestaurant: 'रेस्तरां चुनें', loading: 'लोड हो रहा...',
+    customerName: 'ग्राहक का नाम *', customerPhone: 'फ़ोन', address: 'पता *',
+    useThisLocation: 'यह स्थान उपयोग', orderPrice: 'राशि (रियाल) *', deliveryFee: 'डिलीवरी शुल्क',
+    notes: 'नोट', total: 'कुल', currency: 'रियाल',
+    sendOrder: '🚀 ऑर्डर भेजें', todayStats: 'आज के आँकड़े',
+    totalOrders: 'ऑर्डर', pending: 'लंबित', cashCollected: 'नकद',
+    activeOrders: 'सक्रिय ऑर्डर', refresh: 'रिफ्रेश', noOrders: 'कोई ऑर्डर नहीं',
+    orderCreated: 'ऑर्डर बना!', shareTracking: 'ट्रैकिंग कोड शेयर',
+    trackingCode: 'ट्रैकिंग कोड', copy: 'कॉपी', share: 'शेयर',
+    customerCanTrack: 'ग्राहक ट्रैक कर सकता:', close: 'बंद',
+    fillRequired: '⚠️ आवश्यक खाने भरें', sending: '⏳ भेज रहे...',
+    success: '✅ भेज दिया', error: '❌ त्रुटि',
+    copied: '📋 कॉपी', geocoding: '🔍 खोज...',
+    geocodeSuccess: '✅ मिल गया', geocodeFail: '❌ नहीं मिला',
+    selectRestaurantFirst: '⚠️ रेस्तरां चुनें', priceInvalid: '⚠️ गलत राशि',
+    orderStatus: { pending: 'लंबित', accepted: 'स्वीकृत', at_store: 'दुकान पर', picked_up: 'ले लिया', in_transit: 'रास्ते में', delivered: 'पहुँचा', cancelled: 'रद्द' },
+    driver: 'ड्राइवर', amount: 'राशि', time: 'समय', now: 'अभी', minAgo: 'मि'
+  }
+};
 
-        // ============================================
-        // تحديث الإحصائيات
-        // ============================================
-        async function updateStats() {
-            const today = new Date().toISOString().split('T')[0];
-            
-            // إجمالي طلبات اليوم
-            const { count: todayCount } = await supabaseClient
-                .from('orders')
-                .select('*', { count: 'exact', head: true })
-                .eq('restaurant_id', getRestaurantId())
-                .gte('created_at', today);
+let currentLang = localStorage.getItem('cyberLang') || 'ar';
+let restaurants = [];
+let selectedRestaurant = null;
+let map = null;
+let mapMarker = null;
+let selectedLatLng = null;
+let lastTrackingCode = null;
 
-            document.getElementById('todayTotal').textContent = todayCount || 0;
+function t(key) {
+  const lang = I18N[currentLang];
+  if (!lang) return key;
+  const keys = key.split('.');
+  let val = lang;
+  for (const k of keys) {
+    if (val && typeof val === 'object') val = val[k];
+    else return key;
+  }
+  return val || key;
+}
 
-            // الكاش المحصل اليوم
-            const { data: deliveredOrders } = await supabaseClient
-                .from('orders')
-                .select('price')
-                .eq('restaurant_id', getRestaurantId())
-                .eq('status', 'delivered')
-                .gte('created_at', today);
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('cyberLang', lang);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = I18N[lang].dir;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if (typeof val === 'string') el.textContent = val;
+  });
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+  });
+  renderOrders();
+}
 
-            const totalCash = deliveredOrders ? deliveredOrders.reduce((sum, order) => sum + order.price, 0) : 0;
-            document.getElementById('cashCollected').textContent = totalCash.toLocaleString('ar-SA');
-        }
+function showToast(msg, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(-50%) translateY(-20px)'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
 
-        // ============================================
-        // تحديث الطلبات
-        // ============================================
-        function refreshOrders() {
-            loadActiveOrders();
-            showStatus('🔄 تم تحديث القائمة', 'info');
-        }
+async function loadRestaurants() {
+  const select = document.getElementById('restaurantSelect');
+  const { data, error } = await db.from('restaurants').select('*').eq('is_active', true).order('name');
+  if (error) { showToast(t('error'), 'error'); return; }
+  restaurants = data || [];
+  select.innerHTML = restaurants.length === 0
+    ? `<option value="">${t('noOrders')}</option>`
+    : restaurants.map(r => `<option value="${r.id}">${r.name} — ${r.address || ''}</option>`).join('');
+  if (restaurants.length > 0) onRestaurantChange();
+}
 
-        // ============================================
-        // مشاركة التطبيق
-        // ============================================
-        function shareApp() {
-            const appUrl = window.location.href.replace('restaurant', 'driver');
-            const message = `انضم إلى شبكة توصيل CyberDelivery - نظام ذكي لإدارة الطلبات والكاش! ${appUrl}`;
-            const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-        }
+function onRestaurantChange() {
+  const id = document.getElementById('restaurantSelect').value;
+  selectedRestaurant = restaurants.find(r => r.id === id) || null;
+  document.getElementById('submitBtn').disabled = !selectedRestaurant;
+}
 
-        // ============================================
-        // دوال مساعدة
-        // ============================================
-        function showStatus(message, type) {
-            const status = document.getElementById('statusMsg');
-            status.classList.remove('hidden');
-            status.innerText = message;
-            
-            if (type === 'error') {
-                status.className = 'text-center p-3 rounded-xl text-sm font-bold mt-4 bg-red-100 text-red-700 border-2 border-red-300';
-            } else if (type === 'success') {
-                status.className = 'text-center p-3 rounded-xl text-sm font-bold mt-4 bg-emerald-100 text-emerald-800 border-2 border-emerald-300';
-            } else {
-                status.className = 'text-center p-3 rounded-xl text-sm font-bold mt-4 bg-blue-100 text-blue-700 border-2 border-blue-300';
-            }
-            
-            setTimeout(() => {
-                status.classList.add('hidden');
-            }, 4000);
-        }
+function onAddressInput() {
+  const price = parseFloat(document.getElementById('orderPrice').value) || 0;
+  const fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+  const total = price + fee;
+  const totalDiv = document.getElementById('totalDisplay');
+  if (total > 0) {
+    document.getElementById('totalAmount').textContent = total.toFixed(2);
+    totalDiv.classList.remove('hidden');
+  } else {
+    totalDiv.classList.add('hidden');
+  }
+}
 
-        function getRestaurantId() {
-            let id = localStorage.getItem('restaurantId');
-            if (!id) {
-                id = 'restaurant_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('restaurantId', id);
-            }
-            return id;
-        }
+async function geocodeAddress() {
+  const address = document.getElementById('custAddress').value.trim();
+  if (!address) { showToast(t('fillRequired'), 'error'); return; }
+  const statusEl = document.getElementById('geocodeStatus');
+  statusEl.textContent = t('geocoding');
+  try {
+    const res = await fetch(`${CONFIG?.GEOCODING?.NOMINATIM_URL || 'https://nominatim.openstreetmap.org/search'}?q=${encodeURIComponent(address + ', Riyadh, Saudi Arabia')}&format=json&limit=1`, {
+      headers: { 'Accept-Language': currentLang }
+    });
+    const data = await res.json();
+    if (data && data.length > 0) {
+      const lat = parseFloat(data[0].lat);
+      const lng = parseFloat(data[0].lon);
+      showMap(lat, lng);
+      statusEl.textContent = t('geocodeSuccess');
+      statusEl.style.color = '#00ff66';
+    } else {
+      statusEl.textContent = t('geocodeFail');
+      statusEl.style.color = '#ff0055';
+    }
+  } catch (e) {
+    statusEl.textContent = t('geocodeFail');
+    statusEl.style.color = '#ff0055';
+  }
+}
 
-        function getTimeAgo(timestamp) {
-            const now = new Date();
-            const then = new Date(timestamp);
-            const diff = Math.floor((now - then) / 1000);
-            
-            if (diff < 60) return 'الآن';
-            if (diff < 3600) return `منذ ${Math.floor(diff / 60)} دقيقة`;
-            if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} ساعة`;
-            return `منذ ${Math.floor(diff / 86400)} يوم`;
-        }
+function showMap(lat, lng) {
+  const container = document.getElementById('mapContainer');
+  container.classList.remove('hidden');
+  setTimeout(() => {
+    if (!map) {
+      map = L.map('map').setView([lat, lng], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OSM' }).addTo(map);
+      map.on('click', (e) => {
+        selectedLatLng = e.latlng;
+        if (mapMarker) map.removeLayer(mapMarker);
+        mapMarker = L.marker(e.latlng).addTo(map);
+      });
+    } else {
+      map.setView([lat, lng], 15);
+    }
+    selectedLatLng = { lat, lng };
+    if (mapMarker) map.removeLayer(mapMarker);
+    mapMarker = L.marker([lat, lng]).addTo(map);
+  }, 100);
+}
 
-        // ============================================
-        // التحديث التلقائي كل 10 ثواني
-        // ============================================
-        setInterval(loadActiveOrders, 10000);
+function useMapLocation() {
+  if (!selectedLatLng) { showToast(t('geocodeFail'), 'error'); return; }
+  const lat = selectedLatLng.lat.toFixed(6);
+  const lng = selectedLatLng.lng.toFixed(6);
+  document.getElementById('custAddress').dataset.lat = lat;
+  document.getElementById('custAddress').dataset.lng = lng;
+  showToast(t('geocodeSuccess'));
+}
 
-        // ============================================
-        // التهيئة عند تحميل الصفحة
-        // ============================================
-        window.addEventListener('DOMContentLoaded', () => {
-            loadActiveOrders();
-            getRestaurantId(); // إنشاء ID للمطعم
-        });
-    </script>
+async function submitOrder() {
+  if (!selectedRestaurant) { showToast(t('selectRestaurantFirst'), 'error'); return; }
+  const custName = document.getElementById('custName').value.trim();
+  const address = document.getElementById('custAddress').value.trim();
+  const price = parseFloat(document.getElementById('orderPrice').value);
+  if (!custName || !address || !price || price <= 0) { showToast(t('fillRequired'), 'error'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = t('sending');
+
+  const custPhone = document.getElementById('custPhone').value.trim();
+  const deliveryFee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+  const notes = document.getElementById('orderNotes').value.trim();
+  const lat = parseFloat(document.getElementById('custAddress').dataset.lat) || selectedRestaurant.lat || null;
+  const lng = parseFloat(document.getElementById('custAddress').dataset.lng) || selectedRestaurant.lng || null;
+
+  const { data, error } = await db.from('orders').insert([{
+    restaurant_id: selectedRestaurant.id,
+    restaurant_name: selectedRestaurant.name,
+    customer_name: custName,
+    customer_phone: custPhone || null,
+    address: address,
+    customer_lat: lat,
+    customer_lng: lng,
+    price: price,
+    delivery_fee: deliveryFee,
+    notes: notes || null,
+    status: 'pending'
+  }]).select().single();
+
+  btn.disabled = false;
+  btn.innerHTML = `<span data-i18n="sendOrder">${t('sendOrder')}</span>`;
+
+  if (error) {
+    showToast(t('error') + ': ' + error.message, 'error');
+    return;
+  }
+
+  lastTrackingCode = data.tracking_code;
+  document.getElementById('trackingCodeDisplay').textContent = data.tracking_code;
+  const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'track.html';
+  document.getElementById('trackingUrl').textContent = baseUrl + '?order=' + data.tracking_code;
+  document.getElementById('trackingModal').classList.remove('hidden');
+
+  document.getElementById('custName').value = '';
+  document.getElementById('custPhone').value = '';
+  document.getElementById('custAddress').value = '';
+  document.getElementById('custAddress').dataset.lat = '';
+  document.getElementById('custAddress').dataset.lng = '';
+  document.getElementById('orderPrice').value = '';
+  document.getElementById('deliveryFee').value = '10';
+  document.getElementById('orderNotes').value = '';
+  document.getElementById('totalDisplay').classList.add('hidden');
+  if (mapMarker) { map.removeLayer(mapMarker); mapMarker = null; }
+  document.getElementById('mapContainer').classList.add('hidden');
+  document.getElementById('geocodeStatus').textContent = '';
+
+  showToast(t('success'));
+  loadOrders();
+  loadStats();
+}
+
+function closeTrackingModal() {
+  document.getElementById('trackingModal').classList.add('hidden');
+}
+
+async function copyTrackingCode() {
+  if (!lastTrackingCode) return;
+  try {
+    await navigator.clipboard.writeText(lastTrackingCode);
+    showToast(t('copied'));
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = lastTrackingCode;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(t('copied'));
+  }
+}
+
+function shareTracking() {
+  if (!lastTrackingCode) return;
+  const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'track.html';
+  const url = baseUrl + '?order=' + lastTrackingCode;
+  const text = `${t('orderCreated')} ${lastTrackingCode}`;
+  if (navigator.share) {
+    navigator.share({ title: 'CyberDelivery', text, url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(() => showToast(t('copied')));
+  }
+}
+
+let ordersCache = [];
+async function loadOrders() {
+  if (!selectedRestaurant) {
+    document.getElementById('ordersList').innerHTML = `<div class="text-center text-gray-500 py-8"><div class="text-4xl mb-2">🏪</div><p class="text-sm">${t('selectRestaurant')}</p></div>`;
+    return;
+  }
+  const { data, error } = await db.from('orders').select('*').eq('restaurant_id', selectedRestaurant.id).in('status', ['pending','accepted','at_store','picked_up','in_transit']).order('created_at', { ascending: false });
+  if (error) return;
+  ordersCache = data || [];
+  renderOrders();
+}
+
+function renderOrders() {
+  const list = document.getElementById('ordersList');
+  if (ordersCache.length === 0) {
+    list.innerHTML = `<div class="text-center text-gray-500 py-8"><div class="text-4xl mb-2">📭</div><p class="text-sm">${t('noOrders')}</p></div>`;
+    return;
+  }
+  list.innerHTML = ordersCache.map(o => {
+    const total = (parseFloat(o.price) || 0) + (parseFloat(o.delivery_fee) || 0);
+    const statusLabel = t('orderStatus.' + o.status) || o.status;
+    const timeAgo = formatTimeAgo(o.created_at);
+    return `
+      <div class="bg-black/30 border border-gray-700 rounded-xl p-3 slide-up hover:border-cyan-500/50 transition">
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold text-white truncate">${o.customer_name}</span>
+              <span class="status-badge status-${o.status}">${statusLabel}</span>
+            </div>
+            <div class="text-xs text-gray-400 mt-1 truncate">📍 ${o.address}</div>
+            ${o.driver_name ? `<div class="text-xs text-cyan-400 mt-1">🚗 ${o.driver_name}</div>` : ''}
+            ${o.tracking_code ? `<div class="text-[10px] text-gray-500 mt-1 font-mono">🔗 ${o.tracking_code}</div>` : ''}
+          </div>
+          <div class="text-left shrink-0">
+            <div class="text-lg font-black neon-green">${total.toFixed(0)} <span class="text-xs">${t('currency')}</span></div>
+            <div class="text-[10px] text-gray-500">${timeAgo}</div>
+          </div>
+        </div>
+        ${o.notes ? `<div class="text-xs text-gray-500 italic border-t border-gray-800 pt-2 mt-2">💬 ${o.notes}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function formatTimeAgo(ts) {
+  const diff = Math.floor((Date.now() - new Date(ts)) / 1000);
+  if (diff < 60) return t('now');
+  if (diff < 3600) return Math.floor(diff / 60) + t('minAgo');
+  return Math.floor(diff / 3600) + 'h';
+}
+
+async function loadStats() {
+  if (!selectedRestaurant) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayStr = today.toISOString();
+  const { count: total } = await db.from('orders').select('*', { count: 'exact', head: true }).eq('restaurant_id', selectedRestaurant.id).gte('created_at', todayStr);
+  const { count: pending } = await db.from('orders').select('*', { count: 'exact', head: true }).eq('restaurant_id', selectedRestaurant.id).eq('status', 'pending').gte('created_at', todayStr);
+  const { data: delivered } = await db.from('orders').select('cash_collected').eq('restaurant_id', selectedRestaurant.id).eq('status', 'delivered').gte('delivered_at', todayStr);
+  const cash = (delivered || []).reduce((s, o) => s + (parseFloat(o.cash_collected) || 0), 0);
+  document.getElementById('statTotal').textContent = total || 0;
+  document.getElementById('statPending').textContent = pending || 0;
+  document.getElementById('statCash').textContent = cash.toFixed(0);
+}
+
+db.channel('restaurant-orders-' + (selectedRestaurant?.id || 'global'))
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+    loadOrders();
+    loadStats();
+  })
+  .subscribe();
+
+document.getElementById('orderPrice').addEventListener('input', onAddressInput);
+document.getElementById('deliveryFee').addEventListener('input', onAddressInput);
+
+window.addEventListener('DOMContentLoaded', () => {
+  setLang(currentLang);
+  loadRestaurants().then(() => {
+    loadOrders();
+    loadStats();
+  });
+});
+</script>
 </body>
 </html>
