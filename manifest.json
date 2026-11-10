@@ -1,0 +1,20 @@
+{
+  "name": "سايبر توصيل - نظام التوصيل الذكي",
+  "short_name": "سايبر توصيل",
+  "description": "نظام توصيل ذكي للرياض - 5 لغات",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#05050a",
+  "theme_color": "#05050a",
+  "orientation": "portrait",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect fill='%2305050a' width='512' height='512' rx='64'/%3E%3Ctext x='256' y='300' font-size='180' text-anchor='middle' fill='%2300ff66' font-family='Arial' font-weight='bold'%3E🚀%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
