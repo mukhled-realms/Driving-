@@ -1,50 +1,40 @@
-<!-- 📱 زر إرسال الـ PIN ورابط الدخول للعامل عبر واتساب مباشرة من لوحة الإدارة -->
+<!-- 📋 لوحة إدارة المندوبين السريعة -->
 <div class="card p-4 bg-slate-900 border border-slate-800 rounded-xl mb-4">
-    <h3 class="text-white font-bold mb-3">📋 إدارة المندوبين وإرسال بيانات الدخول</h3>
+    <h3 class="text-white font-bold mb-3">⚡ لوحة المشرف السريعة</h3>
     
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-        <input type="text" id="workerName" placeholder="اسم العامل (مثال: رحيم)" class="p-3 bg-slate-800 text-white rounded-lg border border-slate-700 focus:outline-none focus:border-green-500">
-        <input type="text" id="workerPhone" placeholder="رقم الجوال (مثال: 9665xxxxxxxx)" class="p-3 bg-slate-800 text-white rounded-lg border border-slate-700 focus:outline-none focus:border-green-500">
-        <select id="workerLang" class="p-3 bg-slate-800 text-white rounded-lg border border-slate-700 focus:outline-none focus:border-green-500">
-            <option value="bn">🇧🇩 البنغالية (Bengali)</option>
-            <option value="ur">🇵🇰 الأوردو (Urdu)</option>
-            <option value="hi">🇮🇳 الهندية (Hindi)</option>
-        </select>
+    <div class="space-y-3 mb-3">
+        <input type="text" id="workerName" placeholder="اسم العامل" class="w-full p-3 bg-slate-800 text-white rounded-lg border border-slate-700 focus:outline-none focus:border-green-500">
+        <input type="text" id="adminPhone" placeholder="رقم جوالك لاستلام الإشعار (9665xxxxxxxx)" class="w-full p-3 bg-slate-800 text-white rounded-lg border border-slate-700 focus:outline-none focus:border-green-500">
+        <input type="text" id="workerIban" placeholder="رقم الحساب البنكي IBAN (مطلوب)" class="w-full p-3 bg-slate-800 text-white rounded-lg border border-slate-700 focus:outline-none focus:border-green-500">
     </div>
 
-    <button onclick="generateAndSendPIN()" class="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition duration-200 flex items-center justify-center gap-2">
-        <span>🚀 توليد الـ PIN وإرسال الرابط عبر واتساب</span>
+    <button onclick="sendAdminNotice()" class="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition duration-200">
+        🚀 إرسال بيانات المندوب والإيبان لجوالي
     </button>
 </div>
 
 <script>
-    function generateAndSendPIN() {
+    function sendAdminNotice() {
         const name = document.getElementById('workerName').value.trim();
-        const phone = document.getElementById('workerPhone').value.trim();
-        const lang = document.getElementById('workerLang').value;
+        const phone = document.getElementById('adminPhone').value.trim();
+        const iban = document.getElementById('workerIban').value.trim();
 
+        // فحص سريع: إذا كان الأيبان أو الاسم ناقص ينبهك فوراً
         if (!name || !phone) {
-            alert('الرجاء إدخال اسم العامل ورقم الجوال يا أبو محمد!');
+            alert('يا أبو محمد، اسم العامل ورقم جوالك ضروريين!');
+            return;
+        }
+        
+        if (!iban) {
+            alert('⚠️ تنبيه: حقل "الإيبان" ناقص! لازم تسجل رقم الحساب البنكي للعامل أولاً.');
             return;
         }
 
-        // توليد رمز سري (PIN) من 4 أرقام عشوائية
         const pin = Math.floor(1000 + Math.random() * 9000);
-        
-        // رابط تطبيق المندوب الخاص بك على الويب (PWA)
         const driverAppUrl = "https://mkhld0336-cmyk.github.io/Driving-/driver.html";
 
-        // تجهيز نص الرسالة المترجمة حسب لغة العامل
-        let message = "";
-        if (lang === 'bn') {
-            message = `হ্যালো ${name}, সাইবার ডেলিভারি সিস্টেমে স্বাগতম। আপনার পিন কোড: *${pin}*। লগইন করতে এই লিঙ্কে ক্লিক করুন: ${driverAppUrl}`;
-        } else if (lang === 'ur') {
-            message = `ہیلو ${name}, سائبر ڈیلیوری میں خوش آمدید۔ آپ کا پن کوڈ: *${pin}* ہے۔ لاگ ان کرنے کے لیے اس لنک پر کلک کریں: ${driverAppUrl}`;
-        } else {
-            message = `Hello ${name}, Welcome to Cyber Delivery. Your PIN code is: *${pin}*. Click here to login: ${driverAppUrl}`;
-        }
+        let message = `📋 مـنـدوب جـديـد:\n👤 الاسم: ${name}\n💳 الإيبان: \`${iban}\`\n🔑 الـ PIN: *${pin}*\n🔗 الرابط:\n${driverAppUrl}`;
 
-        // فتح رابط واتساب مباشر (`wa.me`) برقم العامل ورسالة الـ PIN الجاهزة
         const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
     }
