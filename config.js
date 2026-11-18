@@ -1,4 +1,4 @@
-// CyberDelivery Config v2.0
+// CyberDelivery Config v2.0 - Optimized for Riyadh Market
 const CONFIG = {
   SUPABASE: {
     URL: 'https://hhljyqelqnsltmasxgqv.supabase.co',
