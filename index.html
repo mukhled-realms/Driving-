@@ -2,118 +2,107 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CyberDelivery | اطلب الآن</title>
-  <meta name="theme-color" content="#05050a">
-  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberDelivery - طلب جديد</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
-  <script src="config.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    body { background: #05050a; color: #e5e7eb; font-family: 'Tajawal', sans-serif; }
-    .glass { background: rgba(11, 15, 25, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0, 240, 255, 0.2); }
-    .neon-text { text-shadow: 0 0 10px rgba(0, 240, 255, 0.5); }
-    .btn-glow { box-shadow: 0 0 15px rgba(0, 255, 102, 0.4); transition: all 0.3s; }
-    .btn-glow:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(0, 255, 102, 0.6); }
-    #map { height: 240px; width: 100%; border-radius: 1rem; z-index: 1; }
+    body { font-family: 'Cairo', sans-serif; background-color: #0f172a; color: #f8fafc; }
+    .neon-border { box-shadow: 0 0 15px rgba(6, 182, 212, 0.5); border: 1px solid #06b6d4; }
+    .neon-glow { text-shadow: 0 0 10px rgba(6, 182, 212, 0.8); }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-4">
+<body class="min-h-screen p-4 flex flex-col items-center">
+  <div class="w-full max-w-md bg-slate-900 neon-border rounded-2xl p-6 shadow-2xl">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-cyan-400 neon-glow">⚡ سايبر توصيل</h1>
+      <select id="langSelect" onchange="changeLang(this.value)" class="bg-slate-800 border border-cyan-500 text-sm rounded px-2 py-1 text-cyan-300">
+        <option value="ar">🇸🇦 عربى</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="ur">🇵🇰 اردو</option>
+        <option value="bn">🇧🇩 বাংলা</option>
+        <option value="hi">🇮🇳 हिंदी</option>
+      </select>
+    </div>
 
-  <!-- شريط الاتصال السريع المباشر لعبدالله أعلى الصفحة -->
-  <div class="w-full max-w-md bg-emerald-950/90 border border-emerald-500/40 rounded-2xl p-3 mb-4 flex justify-between items-center text-sm shadow-lg">
-    <div class="flex items-center gap-2">
-      <span class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
-      <span class="font-bold text-green-300">المندوب (عبدالله):</span>
-      <span class="font-mono text-emerald-200">0571835254</span>
+    <!-- كتاولوغ المنتجات السريع -->
+    <div class="mb-4">
+      <label class="block text-sm text-cyan-300 mb-2 font-semibold">اختر المنتج أو الوجبة:</label>
+      <div id="productsGrid" class="grid grid-cols-2 gap-2 mb-4">
+        <!-- يتم تعبئتها ديناميكياً أو يدوياً بأسعار وواضحة -->
+        <div onclick="selectProduct('وجبة سايبر الخاصة', 45)" class="bg-slate-800 border border-slate-700 p-2 rounded-lg cursor-pointer hover:border-cyan-400 text-center">
+          <div class="text-xs text-slate-300 mb-1">وجبة سايبر</div>
+          <div class="text-cyan-400 font-bold">45 ر.س</div>
+        </div>
+        <div onclick="selectProduct('مشويات ديلوكس', 65)" class="bg-slate-800 border border-slate-700 p-2 rounded-lg cursor-pointer hover:border-cyan-400 text-center">
+          <div class="text-xs text-slate-300 mb-1">مشويات ديلوكس</div>
+          <div class="text-cyan-400 font-bold">65 ر.س</div>
+        </div>
+      </div>
     </div>
-    <div class="flex gap-2">
-      <a href="tel:0571835254" class="bg-white text-emerald-950 px-3 py-1 rounded-xl text-xs font-black">📞 اتصال</a>
-      <a href="https://wa.me/966571835254" target="_blank" class="bg-green-500 text-white px-3 py-1 rounded-xl text-xs font-black">💬 واتساب</a>
-    </div>
+
+    <!-- نموذج الطلب -->
+    <form id="orderForm" onsubmit="submitOrder(event)" class="space-y-4">
+      <div>
+        <label class="block text-sm text-slate-300 mb-1">اسم العميل:</label>
+        <input type="text" id="cName" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:border-cyan-400 outline-none">
+      </div>
+      <div>
+        <label class="block text-sm text-slate-300 mb-1">رقم الجوال:</label>
+        <input type="tel" id="cPhone" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:border-cyan-400 outline-none">
+      </div>
+      <div>
+        <label class="block text-sm text-slate-300 mb-1">العنوان بالتفصيل (الرياض):</label>
+        <textarea id="cAddress" required rows="2" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:border-cyan-400 outline-none"></textarea>
+      </div>
+      <div class="flex justify-between items-center bg-slate-800 p-3 rounded-lg border border-slate-700">
+        <span class="text-slate-300">الإجمالي:</span>
+        <span id="cPriceDisplay" class="text-xl font-bold text-cyan-400">0.00 ر.س</span>
+        <input type="hidden" id="cPrice" value="0">
+      </div>
+      <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold py-3 rounded-lg transition-all shadow-lg shadow-cyan-500/30">
+        إرسال الطلب الفوري 🚀
+      </button>
+    </form>
   </div>
 
-  <header class="w-full max-w-md glass rounded-2xl p-4 mb-4 flex justify-between items-center">
-    <h1 class="text-2xl font-black neon-text text-cyan-400">🚀 <span data-i18n="app">سايبر توصيل</span></h1>
-    <select id="langSelect" class="bg-black/50 border border-cyan-500/30 rounded-lg px-2 py-1 text-sm" onchange="changeLang(this.value)">
-      <option value="ar">🇸🇦 عربي</option>
-      <option value="en">🇬🇧 EN</option>
-      <option value="ur">🇵🇰 اردو</option>
-      <option value="bn">🇧🇩 বাংলা</option>
-      <option value="hi">🇮🇳 हिंदी</option>
-    </select>
-  </header>
-
-  <main class="w-full max-w-md space-y-4">
-    <div class="glass rounded-2xl p-5 space-y-4">
-      <h2 class="text-xl font-bold text-green-400" data-i18n="order">طلب جديد</h2>
-      
-      <input type="text" id="custName" placeholder="اسم العميل *" class="w-full bg-black/40 border border-gray-700 rounded-xl p-3 focus:border-cyan-400 outline-none">
-      <input type="tel" id="custPhone" placeholder="رقم الجوال" class="w-full bg-black/40 border border-gray-700 rounded-xl p-3 focus:border-cyan-400 outline-none">
-      
-      <div id="map"></div>
-      <textarea id="address" rows="2" placeholder="عنوان التوصيل بالتفصيل *" class="w-full bg-black/40 border border-gray-700 rounded-xl p-3 focus:border-cyan-400 outline-none"></textarea>
-      
-      <div class="grid grid-cols-2 gap-3">
-        <input type="number" id="amount" placeholder="قيمة الطلب (ر.س) *" class="bg-black/40 border border-gray-700 rounded-xl p-3 text-center font-bold text-green-400 text-xl">
-        <input type="text" id="notes" placeholder="ملاحظات اختيارية" class="bg-black/40 border border-gray-700 rounded-xl p-3">
-      </div>
-
-      <button onclick="submitOrder()" id="submitBtn" class="w-full btn-glow bg-gradient-to-r from-cyan-500 to-green-500 text-black font-black py-4 rounded-xl text-lg">
-        🚀 إرسال الطلب للمندوب
-      </button>
-    </div>
-  </main>
-
+  <script src="config.js"></script>
   <script>
-    let map, marker;
-    function initMap() {
-      map = L.map('map').setView([CONFIG.MAP_DEFAULT.lat, CONFIG.MAP_DEFAULT.lng], 13);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-      map.on('click', function(e) {
-        if (marker) map.removeLayer(marker);
-        marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
-        document.getElementById('address').value = `موقع محدد: ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
-      });
+    let currentLang = 'ar';
+    function selectProduct(name, price) {
+      document.getElementById('cName').value = name;
+      document.getElementById('cPrice').value = price;
+      document.getElementById('cPriceDisplay').innerText = price + ' ر.س';
     }
-
-    async function submitOrder() {
-      const name = document.getElementById('custName').value.trim();
-      const phone = document.getElementById('custPhone').value.trim();
-      const address = document.getElementById('address').value.trim();
-      const amount = document.getElementById('amount').value.trim();
-      
-      if(!name || !address || !amount) { alert('⚠️ يرجى تعبئة الحقول الأساسية'); return; }
-
-      const { data, error } = await db.from('orders').insert([{
-        customer_name: name,
-        customer_phone: phone,
-        address: address,
-        price: parseFloat(amount),
-        status: 'pending',
-        notes: document.getElementById('notes').value
-      }]).select().single();
-
-      if(error) alert('❌ حدث خطأ: ' + error.message);
-      else {
-        alert(`✅ تم إنشاء الطلب بنجاح!\nرمز التتبع: ${data.tracking_code}`);
-        window.location.href = `track.html?order=${data.tracking_code}`;
-      }
-    }
-
     function changeLang(lang) {
+      currentLang = lang;
       document.documentElement.lang = lang;
       document.documentElement.dir = CONFIG.LANGUAGES[lang].dir;
-      document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.getAttribute('data-i18n'), lang));
     }
+    async function submitOrder(e) {
+      e.preventDefault();
+      const name = document.getElementById('cName').value;
+      const phone = document.getElementById('cPhone').value;
+      const address = document.getElementById('cAddress').value;
+      const price = parseFloat(document.getElementById('cPrice').value);
 
-    window.addEventListener('DOMContentLoaded', () => {
-      initMap();
-      if(navigator.serviceWorker) navigator.serviceWorker.register('sw.js');
-    });
+      if (!db) {
+        alert('خطأ في الاتصال بقاعدة البيانات');
+        return;
+      }
+
+      const { data, error } = await db.from('orders').insert([
+        { customer_name: name, customer_phone: phone, address: address, price: price, status: 'pending' }
+      ]).select();
+
+      if (error) {
+        alert('حدث خطأ: ' + error.message);
+      } else {
+        alert('تم إرسال طلبك بنجاح! كود التتبع: ' + data[0].tracking_code);
+        window.location.href = `track.html?code=${data[0].tracking_code}`;
+      }
+    }
   </script>
 </body>
 </html>
