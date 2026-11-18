@@ -3,76 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تتبع الطلب | CyberDelivery</title>
+  <title>CyberDelivery - تتبع الطلب</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    body { background: #05050a; color: #fff; font-family: 'Tajawal'; }
-    .step { display: flex; align-items: center; margin-bottom: 20px; }
-    .dot { width: 18px; height: 18px; border-radius: 50%; background: #333; margin-left: 12px; z-index: 2; }
-    .dot.active { background: #00ff66; box-shadow: 0 0 10px #00ff66; }
-    .line { flex-grow: 1; height: 2px; background: #333; margin-left: 12px; }
-    .line.active { background: #00ff66; }
+    body { font-family: 'Cairo', sans-serif; background-color: #0f172a; color: #f8fafc; }
+    .neon-border { box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); border: 1px solid #06b6d4; }
   </style>
 </head>
-<body class="p-4 max-w-md mx-auto min-h-screen flex flex-col justify-center">
+<body class="min-h-screen p-4 flex flex-col items-center justify-center">
+  <div class="w-full max-w-md bg-slate-900 neon-border rounded-2xl p-6 shadow-2xl text-center">
+    <h1 class="text-2xl font-bold text-cyan-400 mb-2">📦 تتبع طلبك الفوري</h1>
+    <p id="trackingCodeDisplay" class="text-sm text-slate-400 mb-6">جاري جلب تفاصيل الطلب...</p>
 
-  <div class="text-center mb-6">
-    <h1 class="text-2xl font-black text-cyan-400 mb-1">🔍 تتبع حالة الطلب</h1>
-    <p class="text-xs text-gray-400">تابع خط سير طلبك لحظة بلحظة</p>
-  </div>
-
-  <div class="bg-[#0b0f19] p-5 rounded-2xl border border-gray-800 mb-4 shadow-xl">
-    <input type="text" id="trackCode" placeholder="أدخل رمز التتبع (مثال: CD-XXXX)" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-center text-lg tracking-wider font-mono mb-3 uppercase outline-none focus:border-cyan-400">
-    <button onclick="trackOrder()" class="w-full bg-cyan-500 text-black font-black py-3 rounded-xl">بحث وتتبع</button>
-  </div>
-
-  <div id="result" class="hidden bg-[#0b0f19] p-6 rounded-2xl border border-cyan-500/30 space-y-6">
-    <div class="text-center">
-      <h2 id="statusText" class="text-xl font-bold text-green-400">قيد المعالجة</h2>
-      <p id="driverInfo" class="text-xs text-gray-400 mt-1">المندوب: عبدالله (0571835254)</p>
+    <!-- تفاصيل الطلب -->
+    <div id="orderDetails" class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-6 text-right space-y-3">
+      <div class="flex justify-between">
+        <span class="text-slate-400">حالة الطلب:</span>
+        <span id="orderStatus" class="font-bold text-yellow-400">قيد المعالجة</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-400">اسم العميل:</span>
+        <span id="customerName" class="font-semibold text-white">-</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-400">المبلغ الإجمالي:</span>
+        <span id="orderPrice" class="font-bold text-cyan-400">-</span>
+      </div>
     </div>
 
-    <div class="pr-2">
-      <div class="step"><div class="dot active"></div><div class="line active"></div><span class="text-xs text-gray-300">تم استلام الطلب</span></div>
-      <div class="step"><div class="dot" id="dot2"></div><div class="line" id="line2"></div><span class="text-xs text-gray-300">جاري التجهيز بالمحل</span></div>
-      <div class="step"><div class="dot" id="dot3"></div><div class="line" id="line3"></div><span class="text-xs text-gray-300">المندوب في الطريق إليك</span></div>
-      <div class="step"><div class="dot" id="dot4"></div><span class="text-xs text-gray-300">تم التوصيل بنجاح</span></div>
+    <!-- أزرار التواصل السريع مع المندوب عبدالله -->
+    <div class="space-y-3">
+      <a id="callDriverBtn" href="tel:0571835254" class="block w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-green-600/30">
+        📞 اتصال بالمندوب (عبدالله)
+      </a>
+      <a id="whatsappDriverBtn" href="https://wa.me/966571835254" target="_blank" class="block w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 rounded-lg transition-all">
+        💬 مراسلة عبر واتساب
+      </a>
+      <a href="index.html" class="block w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-lg text-sm transition-all">
+        ← طلب جديد
+      </a>
     </div>
-    
-    <a id="callBtn" href="tel:0571835254" class="block w-full bg-emerald-600/20 border border-emerald-500 text-emerald-400 text-center py-3 rounded-xl font-bold text-sm">📞 اتصال بالمندوب عبدالله</a>
   </div>
 
+  <script src="config.js"></script>
   <script>
-    async function trackOrder() {
-      const code = document.getElementById('trackCode').value.trim();
-      if(!code) return;
-      
-      const { data, error } = await db.from('orders').select('*').eq('tracking_code', code).single();
-      if(error || !data) { alert('❌ رمز التتبع غير صحيح'); return; }
-
-      document.getElementById('result').classList.remove('hidden');
-      updateStatusUI(data.status);
-    }
-
-    function updateStatusUI(status) {
-      const steps = { 'pending': 1, 'accepted': 2, 'in_transit': 3, 'delivered': 4 };
-      const current = steps[status] || 1;
-      
-      if(current >= 2) { document.getElementById('dot2').classList.add('active'); document.getElementById('line2').classList.add('active'); }
-      if(current >= 3) { document.getElementById('dot3').classList.add('active'); document.getElementById('line3').classList.add('active'); }
-      if(current >= 4) { document.getElementById('dot4').classList.add('active'); }
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
+    async function loadTracking() {
       const urlParams = new URLSearchParams(window.location.search);
-      const orderCode = urlParams.get('order');
-      if(orderCode) {
-        document.getElementById('trackCode').value = orderCode;
-        trackOrder();
+      const code = urlParams.get('code');
+
+      if (!code) {
+        document.getElementById('trackingCodeDisplay').innerText = 'لم يتم تحديد كود التتبع';
+        return;
       }
-    });
+
+      document.getElementById('trackingCodeDisplay').innerText = `كود الطلب: ${code}`;
+
+      if (!db) return;
+      const { data, error } = await db.from('orders').select('*').eq('tracking_code', code).single();
+
+      if (error || !data) {
+        document.getElementById('orderDetails').innerHTML = '<div class="text-red-400 text-center">عذراً، لم يتم العثور على هذا الطلب</div>';
+        return;
+      }
+
+      document.getElementById('orderStatus').innerText = data.status;
+      document.getElementById('customerName').innerText = data.customer_name;
+      document.getElementById('orderPrice').innerText = data.price + ' ر.س';
+    }
+
+    loadTracking();
+    // تحديث كل 5 ثوانٍ لمتابعة حالة التوصيل مباشرة
+    setInterval(loadTracking, 5000);
   </script>
 </body>
 </html>
