@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cyberdelivery-v4.0.0';
+const CACHE_NAME = 'cyberdelivery-v4.2.0';
 const OFFLINE_URL = '/offline.html';
 
 const CORE_ASSETS = [
